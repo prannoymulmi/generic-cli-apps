@@ -1,8 +1,14 @@
-"""Module entry point.
+"""``python -m moco_filler`` entry point.
 
-Wired to `cli.main()` in T020 (final task of Phase 3). Until then, running
-`python -m moco_filler` exits cleanly with a stub message so that early
-intermediate commits remain buildable per Constitution §II.
+Delegates to ``cli.main()`` so the module-form invocation and the
+``moco-filler`` console script registered in ``pyproject.toml`` share
+exactly one entrypoint per Constitution §V (single responsibility).
 """
 
-raise SystemExit("moco-filler CLI is not yet wired up — see tasks.md T020.")
+import sys
+
+from moco_filler.cli import main
+
+
+if __name__ == "__main__":
+    sys.exit(main())
