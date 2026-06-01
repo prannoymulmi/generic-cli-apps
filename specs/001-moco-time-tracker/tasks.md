@@ -128,7 +128,7 @@ Single-project layout from `plan.md` → "Project Structure":
 ## Phase 6: Polish & Cross-Cutting Concerns
 
 - [ ] T032 [P] Add a `[tool.pytest.ini_options]` block (or `pytest.ini`) configuring `testpaths = ["tests"]` and `addopts = "-ra -q"` so `pytest` runs the full suite cleanly from the repo root.
-- [ ] T033 [P] Update `README.md` to embed the install + run snippet from `quickstart.md` §§1–3 so a clone-and-run contributor gets the one-page reference without digging.
+- [X] T033 [P] Update `README.md` to embed the install + run snippet from `quickstart.md` §§1–3 so a clone-and-run contributor gets the one-page reference without digging.
 - [ ] T034 Run the full test suite (`pytest`) plus the SC-002 weekend smoke check from `quickstart.md` §5 (`grep` the Moco activities view for weekend dates → expect empty) as a final gate before declaring the feature complete. *(pytest: 131 passed locally. The SC-002 weekend check is a manual sandbox step and is left to the human verifier alongside T021 / T026 / T031.)*
 
 ---
