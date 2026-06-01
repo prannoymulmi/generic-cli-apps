@@ -11,8 +11,9 @@ from __future__ import annotations
 import pytest
 import responses
 
-from moco_filler.errors import AuthError
+from moco_filler.errors import AuthError, NoProjectsError
 from moco_filler.moco_client import MocoClient
+from moco_filler.models import Project, Task
 
 
 BASE_URL = "https://example.com/api/v1"
@@ -84,3 +85,94 @@ def test_get_session_propagates_other_http_errors(
 def test_constructor_strips_trailing_slash_from_base_url() -> None:
     c = MocoClient(token=TOKEN, base_url=BASE_URL + "/")
     assert c._base_url == BASE_URL  # type: ignore[attr-defined]
+
+
+# ---------- GET /projects/assigned ----------
+
+
+_PROJECTS_PAYLOAD = [
+    {
+        "id": 123,
+        "name": "Internal",
+        "tasks": [
+            {"id": 456, "name": "Administration"},
+            {"id": 457, "name": "Meetings"},
+        ],
+    },
+    {
+        "id": 124,
+        "name": "External",
+        "tasks": [{"id": 458, "name": "Delivery"}],
+    },
+]
+
+
+@responses.activate
+def test_get_projects_assigned_maps_response_to_dataclasses(
+    client: MocoClient,
+) -> None:
+    responses.add(
+        responses.GET,
+        f"{BASE_URL}/projects/assigned",
+        json=_PROJECTS_PAYLOAD,
+        status=200,
+    )
+    projects = client.get_projects_assigned()
+    assert projects == [
+        Project(
+            id=123,
+            name="Internal",
+            tasks=[
+                Task(id=456, name="Administration"),
+                Task(id=457, name="Meetings"),
+            ],
+        ),
+        Project(
+            id=124,
+            name="External",
+            tasks=[Task(id=458, name="Delivery")],
+        ),
+    ]
+
+
+@responses.activate
+def test_get_projects_assigned_raises_no_projects_on_empty_array(
+    client: MocoClient,
+) -> None:
+    responses.add(
+        responses.GET,
+        f"{BASE_URL}/projects/assigned",
+        json=[],
+        status=200,
+    )
+    with pytest.raises(NoProjectsError):
+        client.get_projects_assigned()
+
+
+@responses.activate
+def test_get_projects_assigned_tolerates_missing_tasks_key(
+    client: MocoClient,
+) -> None:
+    responses.add(
+        responses.GET,
+        f"{BASE_URL}/projects/assigned",
+        json=[{"id": 1, "name": "P"}],
+        status=200,
+    )
+    projects = client.get_projects_assigned()
+    assert projects == [Project(id=1, name="P", tasks=[])]
+
+
+@responses.activate
+@pytest.mark.parametrize("status", [401, 403])
+def test_get_projects_assigned_raises_auth_error_on_401_or_403(
+    client: MocoClient, status: int
+) -> None:
+    responses.add(
+        responses.GET,
+        f"{BASE_URL}/projects/assigned",
+        json={"error": "x"},
+        status=status,
+    )
+    with pytest.raises(AuthError):
+        client.get_projects_assigned()
