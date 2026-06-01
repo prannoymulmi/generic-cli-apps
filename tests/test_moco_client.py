@@ -14,9 +14,17 @@ from urllib.parse import parse_qs, urlparse
 import pytest
 import responses
 
+from datetime import date as _date
+from decimal import Decimal
+
 from moco_filler.errors import AuthError, NoProjectsError
 from moco_filler.moco_client import MocoClient
-from moco_filler.models import Project, Task
+from moco_filler.models import (
+    PlannedEntry,
+    Project,
+    SubmissionBatch,
+    Task,
+)
 
 
 BASE_URL = "https://example.com/api/v1"
@@ -267,3 +275,173 @@ def test_get_activities_raises_auth_error_on_401_or_403(
             to_date=date(2026, 6, 30),
             user_id=USER_ID,
         )
+
+
+# ---------- POST /activities/bulk ----------
+
+
+def _planned_entry(d: _date, hours: str = "8") -> PlannedEntry:
+    return PlannedEntry(
+        date=d,
+        weekday=d.strftime("%a"),
+        existing_hours_total=Decimal("0"),
+        hours=Decimal(hours),
+        included=True,
+        already_logged=False,
+    )
+
+
+def _batch(entries) -> SubmissionBatch:
+    return SubmissionBatch(
+        project_id=123,
+        task_id=456,
+        description="Administration",
+        billable=False,
+        entries=entries,
+    )
+
+
+@responses.activate
+def test_bulk_create_sends_serialized_payload(client: MocoClient) -> None:
+    entries = [
+        _planned_entry(_date(2026, 6, 1)),
+        _planned_entry(_date(2026, 6, 2), hours="4.5"),
+    ]
+    responses.add(
+        responses.POST,
+        f"{BASE_URL}/activities/bulk",
+        json={},
+        status=200,
+    )
+    client.bulk_create(_batch(entries))
+    sent = responses.calls[0].request
+    import json as _json
+    body = _json.loads(sent.body)
+    assert body == {
+        "activities": [
+            {
+                "date": "2026-06-01",
+                "project_id": 123,
+                "task_id": 456,
+                "seconds": 28800,
+                "description": "Administration",
+                "billable": False,
+            },
+            {
+                "date": "2026-06-02",
+                "project_id": 123,
+                "task_id": 456,
+                "seconds": 16200,
+                "description": "Administration",
+                "billable": False,
+            },
+        ]
+    }
+
+
+@responses.activate
+def test_bulk_create_opaque_2xx_marks_every_row_created(
+    client: MocoClient,
+) -> None:
+    entries = [
+        _planned_entry(_date(2026, 6, 1)),
+        _planned_entry(_date(2026, 6, 2)),
+    ]
+    responses.add(
+        responses.POST,
+        f"{BASE_URL}/activities/bulk",
+        json={"ok": True},  # not a per-row list
+        status=200,
+    )
+    result = client.bulk_create(_batch(entries))
+    assert result.created_count == 2
+    assert result.failed_count == 0
+    assert result.succeeded is True
+
+
+@responses.activate
+def test_bulk_create_per_row_response_with_errors_yields_mixed_results(
+    client: MocoClient,
+) -> None:
+    """Speculative per-row response shape (FR-011) — verify the parsing."""
+    entries = [
+        _planned_entry(_date(2026, 6, 1)),
+        _planned_entry(_date(2026, 6, 2)),
+        _planned_entry(_date(2026, 6, 3)),
+    ]
+    responses.add(
+        responses.POST,
+        f"{BASE_URL}/activities/bulk",
+        json=[
+            {"id": 1},
+            {"error": "Activity exists"},
+            {"id": 2},
+        ],
+        status=200,
+    )
+    result = client.bulk_create(_batch(entries))
+    assert result.created_count == 2
+    assert result.failed_count == 1
+    statuses = [e.status for e in result.entries]
+    assert statuses == ["created", "failed", "created"]
+    failed = [e for e in result.entries if e.status == "failed"][0]
+    assert failed.date == _date(2026, 6, 2)
+    assert failed.error_message == "Activity exists"
+
+
+@responses.activate
+def test_bulk_create_non_2xx_marks_every_row_failed(
+    client: MocoClient,
+) -> None:
+    entries = [
+        _planned_entry(_date(2026, 6, 1)),
+        _planned_entry(_date(2026, 6, 2)),
+    ]
+    responses.add(
+        responses.POST,
+        f"{BASE_URL}/activities/bulk",
+        body="something went wrong",
+        status=500,
+    )
+    result = client.bulk_create(_batch(entries))
+    assert result.created_count == 0
+    assert result.failed_count == 2
+    assert all(e.status == "failed" for e in result.entries)
+    msg = result.entries[0].error_message or ""
+    assert "500" in msg
+    assert "something went wrong" in msg
+
+
+@responses.activate
+def test_bulk_create_raises_auth_error_on_401(client: MocoClient) -> None:
+    entries = [_planned_entry(_date(2026, 6, 1))]
+    responses.add(
+        responses.POST,
+        f"{BASE_URL}/activities/bulk",
+        json={"error": "auth"},
+        status=401,
+    )
+    with pytest.raises(AuthError):
+        client.bulk_create(_batch(entries))
+
+
+def test_bulk_create_returns_all_failed_on_transport_error(
+    monkeypatch, client: MocoClient
+) -> None:
+    """Network-level exception (no HTTP response) — every row fails."""
+    import requests as _requests
+
+    def boom(*args, **kwargs):
+        raise _requests.ConnectionError("connection refused")
+
+    monkeypatch.setattr(client._session, "post", boom)
+    entries = [
+        _planned_entry(_date(2026, 6, 1)),
+        _planned_entry(_date(2026, 6, 2)),
+    ]
+    result = client.bulk_create(_batch(entries))
+    assert result.failed_count == 2
+    assert all(
+        "connection refused" in (e.error_message or "")
+        for e in result.entries
+    )

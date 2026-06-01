@@ -16,7 +16,13 @@ from typing import Any, Dict, List, Optional
 import requests
 
 from moco_filler.errors import AuthError, NoProjectsError
-from moco_filler.models import Project, Task
+from moco_filler.models import (
+    EntryResult,
+    Project,
+    SubmissionBatch,
+    SubmissionResult,
+    Task,
+)
 
 
 DEFAULT_TIMEOUT = 15.0
@@ -100,9 +106,122 @@ class MocoClient:
         raw = response.json()
         return list(raw) if isinstance(raw, list) else []
 
+    def bulk_create(self, batch: SubmissionBatch) -> SubmissionResult:
+        """Send ``batch`` to ``POST /activities/bulk`` and return a per-row result.
+
+        Outcome mapping (see ``data-model.md`` § ``SubmissionResult``
+        construction rule and ``contracts/moco-http.md``):
+
+        * 2xx + response is a list the same length as the request → each
+          item maps to an ``EntryResult``. Items carrying an ``error``
+          field become ``failed`` rows; otherwise they become ``created``.
+        * 2xx with any other shape → every row inherits ``created``.
+        * Non-2xx (except 401/403, which raise ``AuthError``) → every row
+          inherits ``failed`` with a shared ``error_message`` derived from
+          the upstream status and body.
+        * Transport error (``requests.RequestException``) → every row
+          ``failed`` with the exception message.
+
+        ``bulk_create`` itself does not raise ``BulkTotalFailureError`` /
+        ``BulkPartialFailureError`` — the CLI inspects the returned
+        ``SubmissionResult`` and maps it to exit code 0 / 6 / 7.
+        """
+        payload = {
+            "activities": [
+                {
+                    "date": entry.date.strftime("%Y-%m-%d"),
+                    "project_id": batch.project_id,
+                    "task_id": batch.task_id,
+                    "seconds": entry.seconds,
+                    "description": batch.description,
+                    "billable": batch.billable,
+                }
+                for entry in batch.entries
+            ]
+        }
+
+        try:
+            response = self._session.post(
+                f"{self._base_url}/activities/bulk",
+                json=payload,
+                timeout=DEFAULT_TIMEOUT,
+            )
+        except requests.RequestException as exc:
+            return self._all_failed(batch, f"Network error: {exc}")
+
+        if response.status_code in (401, 403):
+            raise AuthError(
+                "Authentication failed: check your Moco API key."
+            )
+
+        return self._parse_bulk_response(response, batch)
+
     # ------------------------------------------------------------------
     # internals
     # ------------------------------------------------------------------
+
+    def _parse_bulk_response(
+        self,
+        response: "requests.Response",
+        batch: SubmissionBatch,
+    ) -> SubmissionResult:
+        """Translate one bulk response into a SubmissionResult."""
+        if response.ok:
+            body = self._try_json(response)
+            if (
+                isinstance(body, list)
+                and len(body) == len(batch.entries)
+            ):
+                return SubmissionResult(
+                    entries=[
+                        self._entry_result_from_row(entry, row)
+                        for entry, row in zip(batch.entries, body)
+                    ]
+                )
+            return SubmissionResult(
+                entries=[
+                    EntryResult(date=e.date, status="created")
+                    for e in batch.entries
+                ]
+            )
+
+        body_text = (response.text or "").strip()
+        message = f"HTTP {response.status_code}"
+        if body_text:
+            message = f"{message}: {body_text[:200]}"
+        return self._all_failed(batch, message)
+
+    @staticmethod
+    def _try_json(response: "requests.Response") -> Any:
+        try:
+            return response.json()
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _entry_result_from_row(entry, row: Any) -> EntryResult:
+        if isinstance(row, dict) and row.get("error"):
+            return EntryResult(
+                date=entry.date,
+                status="failed",
+                error_message=str(row["error"]),
+            )
+        return EntryResult(date=entry.date, status="created")
+
+    @staticmethod
+    def _all_failed(
+        batch: SubmissionBatch, message: str
+    ) -> SubmissionResult:
+        return SubmissionResult(
+            entries=[
+                EntryResult(
+                    date=e.date,
+                    status="failed",
+                    error_message=message,
+                )
+                for e in batch.entries
+            ]
+        )
 
     def _get(
         self,
