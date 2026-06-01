@@ -19,17 +19,20 @@ Context section of `plan.md`. Decisions here are inputs to `data-model.md`,
 |------|----------|-------|
 | Authenticate every request | Header `Authorization: Token token=<API_KEY>` | Single header value; no refresh, no OAuth dance. |
 | List projects the user can book against | `GET /projects/assigned` | Tasks are embedded under each project, so no second call is needed to populate task choices. Satisfies FR-003 and FR-004 with one round-trip. |
-| Detect "already logged" days (FR-012) | `GET /activities?from=YYYY-MM-01&to=YYYY-MM-LAST&project_id=…&task_id=…&user_id=<me>` | Filter on the chosen month, project, task, and current user. Returned rows give us the dates we must mark as "already logged" and exclude. |
-| Bulk-create the month (FR-010) | `POST /activities/bulk` with body `{"activities": [ … ]}` | Confirmed in docs: a true bulk endpoint exists. Required per-row fields: `date`, `project_id`, `task_id`, `seconds`. We will also send `description` (constant — see §5) and `billable` (see §5). |
+| Detect existing-hour totals per day (FR-012) | `GET /activities?from=YYYY-MM-01&to=YYYY-MM-LAST&user_id=<me>` | Filter on the chosen month and current user **across all projects and tasks** (clarification 2026-06-01). Returned rows are summed per `date`. Dates with a sum ≥ 8h become `already_logged=True` (locked, day full); dates with a sum > 0 but < 8h carry an auto-reduced default of `8 − existing_total` so submission tops the day up to 8h. |
+| Bulk-create the month (FR-010) | `POST /activities/bulk` with body `{"activities": [ … ]}` | Confirmed in docs: a true bulk endpoint exists. Required per-row fields: `date`, `project_id`, `task_id`, `seconds`. We will also send `description` (constant — see §5) and `billable` (see §5). Per FR-011, the client parses the response for per-row status when Moco provides it; if the endpoint returns opaque atomic success/failure, every row inherits the overall outcome (see `data-model.md` `SubmissionResult` construction rule). |
 
 **Rationale**: The spec says "single bulk request" — the Moco API provides
 exactly that primitive, so no client-side batching loop is needed.
 
 **Alternatives considered**:
 
-- Looping `POST /activities` one-row-at-a-time. Rejected: the spec explicitly
-  calls for a single bulk request (FR-010), and looping introduces partial-
-  failure modes the bulk endpoint avoids.
+- Looping `POST /activities` one-row-at-a-time. Rejected: FR-010 still requires
+  a single bulk request. The clarification round on 2026-06-01 added per-row
+  outcome reporting (FR-011), but per `data-model.md` `SubmissionResult` we
+  satisfy that by parsing per-row data from the bulk response where Moco
+  provides it and falling back to a unified outcome where it does not. This
+  keeps the loop avoided while preserving partial-failure visibility.
 - Using `/projects` (full list, all users) instead of `/projects/assigned`.
   Rejected: returns projects the user may not be allowed to book against,
   which makes the task-selection step misleading.
@@ -61,7 +64,7 @@ Flow inside the preview:
    row's current state. Rows flagged `already_logged` only offer "Back"
    (enforces FR-012's no-toggle rule).
 3. Editing hours uses `questionary.text` with input validation (non-negative
-   decimal, ≤ 24).
+   decimal, ≤ 8 per FR-008 — clarification 2026-06-01).
 
 **Rationale**:
 
@@ -169,7 +172,8 @@ for a follow-up if users ask.
 | No projects assigned | `3` | Print "No projects are assigned to your Moco account." |
 | Chosen project has no tasks | `4` | Print "Selected project has no tasks." |
 | Nothing left to submit (all rows skipped) | `5` | Print "No entries to submit; exiting without contacting Moco." (edge case in spec). |
-| Bulk-submit network/server failure | `6` | Print "Bulk submission failed; no entries were created." (FR-011 + edge case). |
+| Bulk-submit total failure (no rows created) | `6` | Print "Bulk submission failed; no entries were created." (FR-011 atomic-failure branch). |
+| Bulk-submit partial failure (some rows created, some failed) | `7` | Print "Created M of N entries for `<YYYY-MM>`. Failed: …" with the list of failed dates and reasons (FR-011 partial-failure branch, clarification 2026-06-01). |
 | User cancels at preview | `0` | Clean exit per FR-009 + AS-1.4. |
 
 **Rationale**: Distinct exit codes make the CLI scriptable later and make
@@ -226,7 +230,7 @@ MVP that gates on visual approval anyway.
 | Bulk submission endpoint | `POST /activities/bulk` (confirmed in Moco docs) |
 | Auth header | `Authorization: Token token=<key>` |
 | Project + task fetch | `GET /projects/assigned` (one round-trip; tasks embedded) |
-| Already-logged detection | `GET /activities?from=&to=&project_id=&task_id=&user_id=` filtered to current user via `GET /session` |
+| Already-logged detection | `GET /activities?from=&to=&user_id=` filtered to current user via `GET /session`; sum `hours` per date across all projects/tasks; ≥ 8h = locked, > 0 & < 8h = auto top-up to 8h (clarification 2026-06-01) |
 | Table UX | `questionary.select` with row-shaped choice strings (no `rich`, no `prompt_toolkit`) |
 | Credentials | env var `MOCO_API_KEY` → `questionary.password` fallback; never written to disk |
 | Fixed description | `"Administration"`, `billable=false`, hard-coded in v1 |

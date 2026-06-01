@@ -52,19 +52,27 @@ The user-visible sequence the CLI guarantees:
    `YYYY-MM`, default-filled with the current month.
 5. Preview screen rendered as a `questionary.select` whose choices are:
    - One choice per Mon–Fri date of the chosen month, formatted like
-     `"Wed 2026-06-03   8.00h   [planned]"` or
-     `"Wed 2026-06-03   8.00h   [already logged]"` or
+     `"Wed 2026-06-03   8.00h   [planned]"` (empty day, full 8h) or
+     `"Wed 2026-06-03   3.50h   [top-up: existing 4.50h]"` (partial day —
+     planned hours = `8 − existing_total`, FR-012) or
+     `"Wed 2026-06-03   0.00h   [already logged]"` (day full, ≥ 8h existing —
+     locked, FR-012) or
      `"Wed 2026-06-03   0.00h   [skipped]"`.
    - A separator line.
    - `"✅ Approve & submit"`.
    - `"❌ Cancel"`.
 6. Selecting a data row opens a sub-menu. Available options depend on row
    state:
-   - **Plain planned row**: `Skip this row` / `Change hours` / `Back`.
+   - **Plain planned row** (empty day): `Skip this row` / `Change hours` /
+     `Back`.
+   - **Top-up row** (partial day): `Skip this row` / `Change hours` / `Back`.
+     Behaves identically to a plain planned row; only the default hours and
+     the row label differ.
    - **Skipped row**: `Include this row` / `Change hours` / `Back`.
    - **Already-logged row**: `Back` only (FR-012).
 7. On `Approve & submit`, the CLI calls `POST /activities/bulk` once with
-   the submitable rows and prints a final success/failure line.
+   the submitable rows and prints a per-row outcome line (FR-011 — full
+   success, total failure, or partial failure).
 8. On `Cancel` (or quit / Ctrl-C at any prompt), the CLI exits without
    calling `POST /activities/bulk`.
 
@@ -77,7 +85,9 @@ stable on purpose):
 
 | When | Line |
 |------|------|
-| Successful bulk submit | `Created N entries in Moco for <YYYY-MM>.` |
+| Successful bulk submit (every row created) | `Created N entries in Moco for <YYYY-MM>.` |
+| Partial bulk submit (some rows created, some failed — FR-011) | `Created M of N entries for <YYYY-MM>. Failed: <date> (<reason>), …` |
+| Total bulk failure (no rows created) | `Bulk submission failed; no entries were created.` |
 | User cancelled at preview | `Nothing was submitted.` |
 | Edge case: every row skipped | `No entries to submit; exiting.` |
 
@@ -96,7 +106,8 @@ are ever written to either stream.
 | `3` | No projects | `GET /projects/assigned` returns `[]` |
 | `4` | No tasks in chosen project | Chosen project has empty `tasks` |
 | `5` | Nothing left to submit | User skipped every otherwise-submitable row |
-| `6` | Bulk submission failed | Network failure or non-2xx from `POST /activities/bulk` |
+| `6` | Bulk submission total failure | No rows created — network failure, non-2xx from `POST /activities/bulk`, or all rows failed per the per-row response |
+| `7` | Bulk submission partial failure | Some rows created, others failed (per-row response from `POST /activities/bulk`) — FR-011, clarification 2026-06-01 |
 
 (These come straight from `research.md` §6.)
 

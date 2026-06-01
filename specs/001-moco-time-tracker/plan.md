@@ -10,12 +10,16 @@ Build an interactive Python 3 CLI (`moco-filler`) that fills a chosen month of
 Moco time entries — 8 hours/day, Mon–Fri — for one project + one task
 (defaulting to `"Administration"`). The tool authenticates with a personal
 API key supplied via env var or masked prompt (never persisted to disk),
-fetches projects and tasks from `GET /projects/assigned`, marks any
-already-logged weekdays as locked (from `GET /activities`), shows a
-keyboard-navigable Questionary preview where the user can skip rows or edit
-hours, and on explicit approval sends one `POST /activities/bulk` request.
-On cancel — or on a bulk-call failure — nothing is created in Moco. See
-[`research.md`](./research.md) for the decisions behind each of these choices.
+fetches projects and tasks from `GET /projects/assigned`, sums the user's
+existing entries per date across **all** projects/tasks (via
+`GET /activities`) to lock days already at ≥ 8h and auto top up partial
+days, shows a keyboard-navigable Questionary preview where the user can
+skip rows or edit hours within `[0, 8]`, and on explicit approval sends one
+`POST /activities/bulk` request. On cancel, nothing is created; on
+submission failures, the CLI reports per-row outcomes (FR-011) so that
+re-runs retry only the still-missing dates via the "already logged"
+exclusion. See [`research.md`](./research.md) for the decisions behind each
+of these choices.
 
 ## Technical Context
 

@@ -51,10 +51,16 @@ What you'll see (happy path):
 3. A task picker — defaults to a task called `"Administration"` when
    present.
 4. A month prompt (default: current month, `YYYY-MM`).
-5. A preview table, one row per Mon–Fri of the chosen month, each at 8.00h.
-   Use ↑/↓ to move; the focused row is highlighted.
+5. A preview table, one row per Mon–Fri of the chosen month. Rows where
+   you have no existing time entries default to 8.00h; rows where you
+   already logged some time (across any project/task) default to
+   `8 − existing_total` so the day tops up to 8h; rows where you already
+   logged ≥ 8h appear as `[already logged]` and are locked (FR-012). Use
+   ↑/↓ to move; the focused row is highlighted.
 6. On any row, press Enter to open a sub-menu:
-   - **Plain row**: Skip / Change hours / Back.
+   - **Plain row** (empty day): Skip / Change hours / Back.
+   - **Top-up row** (partial day): Skip / Change hours / Back (same as plain;
+     only the default hours differ).
    - **Skipped row**: Include / Change hours / Back.
    - **Already-logged row**: Back only (locked — can't re-include).
 7. When the preview looks right, scroll to **`✅ Approve & submit`** and
@@ -107,4 +113,5 @@ After an approved run:
 | `No projects are assigned to your Moco account.` (exit 3) | API key works but your account has no project assignments | Ask a Moco admin to assign you to a project. |
 | `Selected project has no tasks.` (exit 4) | Chosen project has no tasks in Moco | Pick a different project, or have one added in Moco. |
 | `No entries to submit; exiting.` (exit 5) | You skipped every row in the preview | Re-run and include at least one row before approving. |
-| `Bulk submission failed; no entries were created.` (exit 6) | Network failure or Moco-side error | Re-run; the tool is safe to retry because no entries were created on failure. |
+| `Bulk submission failed; no entries were created.` (exit 6) | Network failure or Moco-side error; no rows were created | Re-run; the tool is safe to retry because no entries were created on failure. |
+| `Created M of N entries for <YYYY-MM>. Failed: …` (exit 7) | Moco accepted some rows and rejected others | Re-run; the "already logged" rule (FR-012) will exclude the dates that did succeed, so the second run retries only the still-missing dates. |

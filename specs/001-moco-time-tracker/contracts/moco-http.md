@@ -73,8 +73,9 @@ Selected project with empty `tasks` → exit `4`.
 
 ## `GET /activities`
 
-Used to detect dates that already have an activity recorded against the
-chosen project + task for the current user (FR-012).
+Used to compute the current user's existing-hours total per date across
+**all** projects and tasks (FR-012, clarification 2026-06-01) so the
+planner can lock days at ≥ 8h and auto-top-up partial days.
 
 **Query parameters we send**:
 
@@ -82,9 +83,12 @@ chosen project + task for the current user (FR-012).
 |-------|-------|
 | `from` | `YYYY-MM-01` of chosen month |
 | `to` | last day of chosen month, `YYYY-MM-DD` |
-| `project_id` | chosen project id |
-| `task_id` | chosen task id |
 | `user_id` | current user's id from `GET /session` |
+
+We deliberately do **not** filter by `project_id` or `task_id` — the
+"already logged" rule sums every entry the user has on a date regardless of
+project/task. (Prior to the 2026-06-01 clarification this filter was scoped
+to the chosen project/task; that is no longer the case.)
 
 **Response (200) — fields we depend on**:
 
@@ -94,8 +98,11 @@ chosen project + task for the current user (FR-012).
 ]
 ```
 
-We use only `date`. The set of `date` values becomes the "already logged"
-set; any matching `PlannedEntry.date` flips `already_logged=True`.
+We use both `date` and `hours`. For each in-month date we sum the `hours`
+values across all returned rows and store the result on the corresponding
+`PlannedEntry.existing_hours_total`. Days with a sum ≥ 8h flip
+`already_logged=True` (locked); days with a sum > 0 but < 8h take a default
+`hours` of `8 − existing_total` so the submission tops the day to 8h.
 
 ---
 
@@ -129,18 +136,31 @@ Field rules:
 - `description`: fixed `"Administration"` in v1 (see research.md §5).
 - `billable`: fixed `false` in v1.
 
-**Success response (2xx)**:
+**Response handling (FR-011 — per-row outcomes, clarification 2026-06-01)**:
 
-We treat any 2xx as success. The CLI prints
-`"Created N entries in Moco for <YYYY-MM>."` where `N` is the number of
-rows we sent — Moco's response shape for the bulk endpoint is treated as
-opaque in v1.
+We construct a `SubmissionResult` whose `entries` list mirrors the rows we
+sent. Two response shapes are supported:
 
-**Failure response (non-2xx, or transport error)**:
+1. **Per-row response** — if Moco returns a JSON body where individual rows
+   carry a status or error indicator, we map each one to an `EntryResult`
+   with `status="created"` or `status="failed"` plus the per-row
+   `error_message`.
+2. **Opaque response** — if Moco's bulk endpoint behaves atomically (every
+   2xx = all rows created, every non-2xx = no rows created), every
+   `EntryResult` inherits the overall status. On failure they share the
+   same `error_message` derived from the HTTP status and any response body.
 
-Maps to exit code `6`. The CLI prints `"Bulk submission failed; no entries
-were created."` and includes the upstream status code / error body, if any,
-on stderr.
+Exit code follows the `SubmissionResult` rendering rules in
+`data-model.md`:
+
+| Outcome | stdout | Exit code |
+|---------|--------|-----------|
+| All rows created (`failed_count == 0`) | `Created N entries in Moco for <YYYY-MM>.` | `0` |
+| All rows failed (`created_count == 0`) | `Bulk submission failed; no entries were created.` | `6` |
+| Partial (`created_count > 0 and failed_count > 0`) | `Created M of N entries for <YYYY-MM>. Failed: <date> (<reason>) …` | `7` |
+
+The upstream status code / error body is mirrored on stderr in failure and
+partial-failure cases.
 
 ---
 

@@ -67,10 +67,11 @@ One row of the preview table.
 |-------|------|-------|
 | `date` | `datetime.date` | A Mon–Fri date in the chosen month. |
 | `weekday` | `str` | Short weekday name (e.g., `"Mon"`), computed from `date`. |
-| `hours` | `Decimal` | Default `Decimal("8")`. Editable to any value in `[0, 24]`. |
-| `included` | `bool` | `True` by default. Flipping to `False` excludes the row from the submission. |
-| `already_logged` | `bool` | `True` when Moco already has an activity on `date` against the chosen project/task for the current user (FR-012). |
-| `note` | `str \| None` | Optional one-liner explaining why a row is in its current state — e.g., `"Already logged"` for `already_logged=True` rows. Display-only; not sent to Moco. |
+| `existing_hours_total` | `Decimal` | Sum of the user's existing time entries on `date` across **all projects and tasks** (FR-012). `Decimal("0")` when none. |
+| `hours` | `Decimal` | Planned hours for this row. Default = `max(Decimal("0"), Decimal("8") − existing_hours_total)` so the day tops up to 8h (FR-005, FR-012). Editable to any value in `[0, 8]` (FR-008). Setting to `0` flips `included` to `False` (FR-008). |
+| `included` | `bool` | `True` by default. Flipping to `False` excludes the row from the submission. Forced to `False` when `hours == 0`. |
+| `already_logged` | `bool` | `True` when `existing_hours_total ≥ 8` ("day full" — FR-012). When `True`, the row is locked and excluded from the submission; users cannot toggle it back. |
+| `note` | `str \| None` | Optional one-liner explaining why a row is in its current state — e.g., `"Already logged (day full)"` or `"Top-up: existing 4.50h"`. Display-only; not sent to Moco. |
 
 **Derived properties** (not fields):
 
@@ -107,7 +108,10 @@ not expose Skip/Include/Edit options for them (FR-012).
 - `date` must satisfy `date.weekday() < 5` (Mon=0..Fri=4) — weekends are
   excluded at construction time (FR-005, FR-014) and the constructor must
   refuse weekend dates as a defense-in-depth check.
-- `hours` ≥ 0 and ≤ 24.
+- `hours` ≥ 0 and ≤ 8 (FR-008).
+- `existing_hours_total` ≥ 0.
+- When `already_logged == True`, the row must also satisfy `included == False`
+  and is immutable for the rest of its lifetime.
 
 ---
 
@@ -152,16 +156,44 @@ the preview.
 
 ## `SubmissionResult`
 
-Outcome of the bulk call, surfaced to the user (FR-011).
+Per-row outcome of the bulk call, surfaced to the user (FR-011).
+
+### `EntryResult`
 
 | Field | Type | Notes |
 |-------|------|-------|
-| `succeeded` | `bool` | `True` only on a clean 2xx response. |
-| `created_count` | `int` | Number of activities created on success; `0` on failure. |
-| `error_message` | `str \| None` | Human-readable error text on failure, derived from the HTTP status and any response body Moco provides. |
+| `date` | `datetime.date` | The date this result corresponds to (mirrors `PlannedEntry.date`). |
+| `status` | `Literal["created", "failed"]` | `"created"` only when Moco confirms creation of this row. |
+| `error_message` | `str \| None` | Per-row failure reason when `status == "failed"` and Moco surfaces one; `None` on success. |
 
-**Rendering rule**: On `succeeded=False`, the CLI must state "no entries
-were created" so users do not have to guess about partial state.
+### `SubmissionResult`
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `entries` | `list[EntryResult]` | One entry per row that was sent (in the same order as the `SubmissionBatch`). |
+
+**Derived properties** (not fields):
+
+- `created_count`: `sum(1 for e in entries if e.status == "created")`.
+- `failed_count`: `sum(1 for e in entries if e.status == "failed")`.
+- `succeeded`: `failed_count == 0 and created_count == len(entries)`.
+- `any_created`: `created_count > 0`.
+
+**Rendering rules** (FR-011):
+
+- All `"created"` → CLI prints the success line and exits `0`.
+- All `"failed"` → CLI prints "Bulk submission failed; no entries were
+  created." and exits `6` (research.md §6).
+- Mixed → CLI prints "Created M of N entries for `<YYYY-MM>`. Failed: …"
+  with the list of failed dates and reasons, and exits `7` (research.md §6).
+  The user is told that re-running the CLI will retry only the still-missing
+  dates (via FR-012's "already logged" exclusion).
+
+**Construction from a `POST /activities/bulk` response**: when Moco's response
+includes per-row status data, `entries` mirrors it. When the response is
+opaque (the documented atomic-failure case), every row inherits the same
+status: `"created"` for an overall 2xx, `"failed"` (with the upstream error
+as the shared `error_message`) for a non-2xx or transport error.
 
 ---
 
