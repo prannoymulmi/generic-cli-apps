@@ -13,17 +13,16 @@ that with the env-or-masked-prompt fallback.
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 from typing import List, Optional
 
 import questionary
 
+from moco_filler.auth import resolve_credentials
 from moco_filler.calendar_utils import parse_month, weekday_dates
 from moco_filler.errors import (
     BulkPartialFailureError,
     BulkTotalFailureError,
-    CredentialMissingError,
     MocoFillerError,
     NoTasksError,
     NothingToSubmitError,
@@ -86,14 +85,10 @@ def _run(args: argparse.Namespace) -> int:
         print(str(exc), file=sys.stderr)
         return EXIT_BAD_INPUT
 
-    token = os.environ.get("MOCO_API_KEY", "").strip()
-    if not token:
-        raise CredentialMissingError(
-            "MOCO_API_KEY is not set. Export it before running "
-            "moco-filler (US2/T024 will add a masked-prompt fallback)."
-        )
-
-    client = MocoClient(token=token, base_url=MOCO_BASE_URL)
+    credentials = resolve_credentials()
+    client = MocoClient(
+        token=credentials.token, base_url=MOCO_BASE_URL
+    )
     user_id = client.get_session()
     projects = client.get_projects_assigned()
 
