@@ -5,7 +5,14 @@ from __future__ import annotations
 from datetime import date
 from decimal import Decimal
 
-from moco_filler.planner import build_planned_entries
+import pytest
+
+from moco_filler.models import PlannedEntry
+from moco_filler.planner import (
+    build_planned_entries,
+    set_hours,
+    toggle_skipped,
+)
 
 
 def _activity(d: str, hours: float) -> dict:
@@ -179,3 +186,104 @@ def test_returned_list_is_in_ascending_date_order() -> None:
     entries = build_planned_entries(2026, 6, [])
     dates = [e.date for e in entries]
     assert dates == sorted(dates)
+
+
+# ---------- US3 row edit helpers ----------
+
+
+def _plain_row(d: date = date(2026, 6, 3)) -> PlannedEntry:
+    return PlannedEntry(
+        date=d,
+        weekday=d.strftime("%a"),
+        existing_hours_total=Decimal("0"),
+        hours=Decimal("8"),
+        included=True,
+        already_logged=False,
+        note=None,
+    )
+
+
+def _top_up_row(d: date = date(2026, 6, 4)) -> PlannedEntry:
+    return PlannedEntry(
+        date=d,
+        weekday=d.strftime("%a"),
+        existing_hours_total=Decimal("4.5"),
+        hours=Decimal("3.5"),
+        included=True,
+        already_logged=False,
+        note="Top-up: existing 4.50h",
+    )
+
+
+def _locked_row(d: date = date(2026, 6, 5)) -> PlannedEntry:
+    return PlannedEntry(
+        date=d,
+        weekday=d.strftime("%a"),
+        existing_hours_total=Decimal("8"),
+        hours=Decimal("0"),
+        included=False,
+        already_logged=True,
+        note="Already logged (8.00h, day full)",
+    )
+
+
+def test_set_hours_to_valid_value_keeps_row_included() -> None:
+    row = _plain_row()
+    edited = set_hours(row, Decimal("4"))
+    assert edited.hours == Decimal("4")
+    assert edited.included is True
+    # The original row is unchanged (set_hours returns a new instance).
+    assert row.hours == Decimal("8")
+
+
+def test_set_hours_to_zero_auto_skips_row() -> None:
+    """Q2 clarification (2026-06-01): hours=0 ⇒ included=False."""
+    edited = set_hours(_plain_row(), Decimal("0"))
+    assert edited.hours == Decimal("0")
+    assert edited.included is False
+
+
+def test_set_hours_to_eight_is_allowed_upper_bound() -> None:
+    edited = set_hours(_top_up_row(), Decimal("8"))
+    assert edited.hours == Decimal("8")
+    assert edited.included is True
+
+
+def test_set_hours_negative_raises() -> None:
+    with pytest.raises(ValueError):
+        set_hours(_plain_row(), Decimal("-1"))
+
+
+def test_set_hours_above_eight_raises() -> None:
+    """Q3 clarification (2026-06-01): hours capped at 8."""
+    with pytest.raises(ValueError):
+        set_hours(_plain_row(), Decimal("8.01"))
+
+
+def test_set_hours_on_already_logged_row_is_refused() -> None:
+    """FR-012: locked rows reject edits."""
+    with pytest.raises(ValueError):
+        set_hours(_locked_row(), Decimal("4"))
+
+
+def test_toggle_skipped_includes_to_skipped_and_back() -> None:
+    row = _plain_row()
+    skipped = toggle_skipped(row)
+    assert skipped.included is False
+    assert skipped.hours == row.hours  # hours preserved across skip
+    re_included = toggle_skipped(skipped)
+    assert re_included.included is True
+    assert re_included.hours == row.hours
+
+
+def test_toggle_skipped_on_top_up_row() -> None:
+    row = _top_up_row()
+    skipped = toggle_skipped(row)
+    assert skipped.included is False
+    assert skipped.existing_hours_total == row.existing_hours_total
+
+
+def test_toggle_skipped_on_already_logged_row_is_refused() -> None:
+    """FR-012: locked rows cannot be toggled back to included."""
+    with pytest.raises(ValueError):
+        toggle_skipped(_locked_row())

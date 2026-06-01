@@ -1,12 +1,15 @@
-"""Build the preview's PlannedEntry list from a month + existing activities.
+"""Build and edit the preview's PlannedEntry list.
 
 Implements the FR-005 "default 8h per weekday" baseline and the FR-012
 cross-project existing-hours rule (sum across **all** projects/tasks,
-lock at ≥ 8h, auto top-up to 8h on partial days).
+lock at ≥ 8h, auto top-up to 8h on partial days). ``toggle_skipped``
+and ``set_hours`` are the pure US3 row-edit primitives — kept here so
+the preview UI can stay free of business rules per ``research.md`` §8.
 """
 
 from __future__ import annotations
 
+import dataclasses
 from collections import defaultdict
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
@@ -111,3 +114,39 @@ def _build_one(d: date, existing_total: Decimal) -> PlannedEntry:
 def _fmt(value: Decimal) -> str:
     """Two-decimal rendering matching contracts/cli.md preview format."""
     return f"{value:.2f}"
+
+
+# ---- US3 row-edit helpers (pure; no UI imports) -------------------------
+
+
+def toggle_skipped(row: PlannedEntry) -> PlannedEntry:
+    """Flip a row's ``included`` flag (FR-008).
+
+    Already-logged rows are locked (FR-012); toggling them raises
+    ``ValueError`` so callers can't quietly bypass the lock.
+    """
+    if row.already_logged:
+        raise ValueError(
+            "Cannot toggle an already-logged row (FR-012)"
+        )
+    return dataclasses.replace(row, included=not row.included)
+
+
+def set_hours(row: PlannedEntry, value: Decimal) -> PlannedEntry:
+    """Set ``hours`` on a row within the FR-008 ``[0, 8]`` range.
+
+    Setting ``value == 0`` auto-skips the row (Q2 clarification,
+    2026-06-01). Already-logged rows are locked (FR-012) and refuse
+    edits.
+    """
+    if row.already_logged:
+        raise ValueError(
+            "Cannot change hours on an already-logged row (FR-012)"
+        )
+    if not (HOURS_FLOOR <= value <= HOURS_CAP):
+        raise ValueError(
+            f"hours must be within [{HOURS_FLOOR}, {HOURS_CAP}]; got {value}"
+        )
+    if value == HOURS_FLOOR:
+        return dataclasses.replace(row, hours=value, included=False)
+    return dataclasses.replace(row, hours=value)

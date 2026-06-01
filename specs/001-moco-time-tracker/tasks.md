@@ -112,12 +112,12 @@ Single-project layout from `plan.md` → "Project Structure":
 
 ### Tests for User Story 3 (Constitution §IV — mandatory) ⚠️
 
-- [ ] T027 [P] [US3] Extend `tests/test_planner.py` with helper-function tests for `toggle_skipped(row)` and `set_hours(row, value)` covering: edit hours to a valid in-range value, edit hours to `0` → `included=False` (Q2 auto-skip), edit hours to a negative value → `ValueError`, edit hours above `8` → `ValueError` (Q3 cap), skip toggle on plain and skipped rows, skip refused on `already_logged=True` rows (FR-012).
+- [X] T027 [P] [US3] Extend `tests/test_planner.py` with helper-function tests for `toggle_skipped(row)` and `set_hours(row, value)` covering: edit hours to a valid in-range value, edit hours to `0` → `included=False` (Q2 auto-skip), edit hours to a negative value → `ValueError`, edit hours above `8` → `ValueError` (Q3 cap), skip toggle on plain and skipped rows, skip refused on `already_logged=True` rows (FR-012).
 - [ ] T028 [P] [US3] Write unit tests for the preview's pure helpers in `tests/test_preview_logic.py` per `research.md` §8 — covering the row-format string builder (one case per state: plain / top-up / already-logged / skipped) and the `next_included_row` / running-total computation. Explicitly do NOT exercise the live `questionary.select` loop.
 
 ### Implementation for User Story 3
 
-- [ ] T029 [US3] In `src/moco_filler/planner.py`, add `toggle_skipped(row: PlannedEntry) -> PlannedEntry` and `set_hours(row: PlannedEntry, value: Decimal) -> PlannedEntry` as pure functions (no UI imports) so they can be unit-tested per `research.md` §8. Enforce the `[0, 8]` validation on `set_hours` and the auto-skip on `0`.
+- [X] T029 [US3] In `src/moco_filler/planner.py`, add `toggle_skipped(row: PlannedEntry) -> PlannedEntry` and `set_hours(row: PlannedEntry, value: Decimal) -> PlannedEntry` as pure functions (no UI imports) so they can be unit-tested per `research.md` §8. Enforce the `[0, 8]` validation on `set_hours` and the auto-skip on `0`.
 - [ ] T030 [US3] Extend `src/moco_filler/preview.py` with the per-row sub-menu — variants for plain / top-up / skipped / already-logged rows per `contracts/cli.md` § Interactive flow step 6. Dispatch `Skip this row` / `Include this row` / `Change hours` / `Back`; the `Change hours` action uses `questionary.text` with input validation backed by `set_hours` from T029. Re-render the preview after every accepted edit.
 - [ ] T031 [US3] Run the US3 independent test against the sandbox account — change one row to `4`, skip another, approve, then verify in Moco that the 4h row was created at 4h and the skipped row produced no entry.
 
@@ -129,7 +129,7 @@ Single-project layout from `plan.md` → "Project Structure":
 
 - [ ] T032 [P] Add a `[tool.pytest.ini_options]` block (or `pytest.ini`) configuring `testpaths = ["tests"]` and `addopts = "-ra -q"` so `pytest` runs the full suite cleanly from the repo root.
 - [ ] T033 [P] Update `README.md` to embed the install + run snippet from `quickstart.md` §§1–3 so a clone-and-run contributor gets the one-page reference without digging.
-- [ ] T034 Run the full test suite (`pytest`) plus the SC-002 weekend smoke check from `quickstart.md` §5 (`grep` the Moco activities view for weekend dates → expect empty) as a final gate before declaring the feature complete.
+- [ ] T034 Run the full test suite (`pytest`) plus the SC-002 weekend smoke check from `quickstart.md` §5 (`grep` the Moco activities view for weekend dates → expect empty) as a final gate before declaring the feature complete. *(pytest: 131 passed locally. The SC-002 weekend check is a manual sandbox step and is left to the human verifier alongside T021 / T026 / T031.)*
 
 ---
 
