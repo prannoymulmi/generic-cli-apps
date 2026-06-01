@@ -1,0 +1,12 @@
+# Mirrors the runtime and dev dependencies pinned in pyproject.toml so that
+# `pip install -r requirements.txt` reproduces the supported environment
+# without resolving the project metadata first. Keep these versions in sync
+# with pyproject.toml's [project] / [project.optional-dependencies.dev]
+# sections.
+
+questionary==2.1.1
+requests==2.32.5
+
+# dev
+pytest==8.4.2
+responses==0.26.1
