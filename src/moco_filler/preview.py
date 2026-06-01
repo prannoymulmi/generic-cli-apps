@@ -5,9 +5,14 @@ US3 (T030) adds the per-row sub-menu — Skip / Include / Change hours —
 plus a running submit-total in the prompt so the user can see edits
 update in real time (FR-008). Already-logged rows stay locked (FR-012).
 
-The pure helpers (``format_row``, ``state_label``, ``running_total``,
-``next_included_row``) are exposed for unit testing per ``research.md``
-§8. The live Questionary loop is intentionally not unit-tested.
+Feature 002 (T004–T006) repaints the rows as a real terminal table —
+column-aligned data rows under a labelled header `Separator`. Per-state
+colour coding and the cursor marker land in US2 / US3 of feature 002.
+
+The pure helpers (``format_row``, ``format_header``, ``state_label``,
+``running_total``, ``next_included_row``) are exposed for unit testing
+per ``research.md`` §8. The live Questionary loop is intentionally not
+unit-tested.
 """
 
 from __future__ import annotations
@@ -60,11 +65,16 @@ def _preview_prompt(entries: List[PlannedEntry]) -> str:
 
 
 def _build_choices(entries: List[PlannedEntry]) -> list:
-    """Return the Questionary choices list (rows + separator + actions)."""
-    items: list = [
+    """Return the Questionary choices list — header, rows, separator, actions.
+
+    The leading ``Separator`` carries the column header so it stays
+    anchored above the data rows across repaints (US1.AC-1).
+    """
+    items: list = [questionary.Separator(format_header())]
+    items.extend(
         questionary.Choice(title=format_row(entry), value=index)
         for index, entry in enumerate(entries)
-    ]
+    )
     items.append(questionary.Separator())
     items.append(
         questionary.Choice(title="✅ Approve & submit", value=APPROVE_VALUE)
@@ -161,12 +171,27 @@ def _validate_hours(value: str):
 def format_row(entry: PlannedEntry) -> str:
     """Render one PlannedEntry as the columnar choice string.
 
-    Matches the format examples in
-    ``specs/001-moco-time-tracker/contracts/cli.md`` § Interactive flow.
+    Column layout per
+    ``specs/002-make-moco-filler/contracts/preview-rendering.md``:
+    Day=3 left, Date=10 left, Hours=5 right, State=flex left, with a
+    literal two-space gap between every column.
     """
+    hours_str = f"{entry.hours:.2f}h"
     return (
-        f"{entry.weekday} {entry.date.isoformat()}   "
-        f"{entry.hours:>4.2f}h   {state_label(entry)}"
+        f"{entry.weekday:<3}  "
+        f"{entry.date.isoformat():<10}  "
+        f"{hours_str:>5}  "
+        f"{state_label(entry)}"
+    )
+
+
+def format_header() -> str:
+    """Header row matching :func:`format_row`'s column anchors (US1.AC-2)."""
+    return (
+        f"{'Day':<3}  "
+        f"{'Date':<10}  "
+        f"{'Hours':>5}  "
+        f"State"
     )
 
 

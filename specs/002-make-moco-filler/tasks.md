@@ -52,15 +52,15 @@ No new dependencies, no new packages — this feature is presentation-only on to
 
 > Per Constitution §IV, write each test alongside or before its implementation. Don't merge untested code.
 
-- [ ] T001 [P] [US1] Extend `tests/test_preview_logic.py` with column-alignment tests for `format_row` (Day=3, Date=10, Hours=5, State=flex; 2-space gaps per `contracts/preview-rendering.md` § Column layout): assert every f-string field is the right width and that the screen column of the `[` opening bracket of the State label is identical across plain / top-up / locked / skipped rows.
-- [ ] T002 [P] [US1] Extend `tests/test_preview_logic.py` with a test for the new `format_header()` helper — asserting it returns a single line whose `Day` / `Date` / `Hours` / `State` labels start at the same screen columns produced by `format_row()` (the "vertical alignment under the header" invariant from FR-002).
-- [ ] T003 [P] [US1] Extend `tests/test_preview_logic.py` with a test for `_build_choices()` proving the first emitted element is a `questionary.Separator` carrying the header text (US1.AC-1: header sits directly above the data rows).
+- [X] T001 [P] [US1] Extend `tests/test_preview_logic.py` with column-alignment tests for `format_row` (Day=3, Date=10, Hours=5, State=flex; 2-space gaps per `contracts/preview-rendering.md` § Column layout): assert every f-string field is the right width and that the screen column of the `[` opening bracket of the State label is identical across plain / top-up / locked / skipped rows.
+- [X] T002 [P] [US1] Extend `tests/test_preview_logic.py` with a test for the new `format_header()` helper — asserting it returns a single line whose `Day` / `Date` / `Hours` / `State` labels start at the same screen columns produced by `format_row()` (the "vertical alignment under the header" invariant from FR-002).
+- [X] T003 [P] [US1] Extend `tests/test_preview_logic.py` with a test for `_build_choices()` proving the first emitted element is a `questionary.Separator` carrying the header text (US1.AC-1: header sits directly above the data rows).
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] In `src/moco_filler/preview.py`, update `format_row(entry)` to emit a column-aligned plain string using fixed widths (Day=3 left, Date=10 left, Hours=5 right, State=flex left) and two-space gaps. Keep the existing positional signature unchanged so `tests/test_preview_logic.py`'s existing assertions still pass (per `research.md` §7 — option (a)).
-- [ ] T005 [US1] In `src/moco_filler/preview.py`, add `format_header() -> str` returning the matching header line (`"Day  Date         Hours  State"` in monochrome). Place it next to `format_row` and `state_label` to keep all pure formatters in one place (Constitution §V).
-- [ ] T006 [US1] In `src/moco_filler/preview.py`, modify `_build_choices(entries)` to prepend a `questionary.Separator(format_header())` as the first item, so every preview repaint shows the header anchored above the data rows.
+- [X] T004 [US1] In `src/moco_filler/preview.py`, update `format_row(entry)` to emit a column-aligned plain string using fixed widths (Day=3 left, Date=10 left, Hours=5 right, State=flex left) and two-space gaps. Keep the existing positional signature unchanged so `tests/test_preview_logic.py`'s existing assertions still pass (per `research.md` §7 — option (a)).
+- [X] T005 [US1] In `src/moco_filler/preview.py`, add `format_header() -> str` returning the matching header line (`"Day  Date         Hours  State"` in monochrome). Place it next to `format_row` and `state_label` to keep all pure formatters in one place (Constitution §V).
+- [X] T006 [US1] In `src/moco_filler/preview.py`, modify `_build_choices(entries)` to prepend a `questionary.Separator(format_header())` as the first item, so every preview repaint shows the header anchored above the data rows.
 - [ ] T007 [US1] Run the US1 independent test against a sandbox account per `quickstart.md` §4 step 1 — confirm header alignment by eye on an empty month, and re-run on a month with partial / locked / skipped rows to confirm the columns still line up.
 
 **Checkpoint**: US1 ships the MVP — a clean monochrome table with a labelled header. The CLI is already more readable; US2 and US3 add the colour layers.
