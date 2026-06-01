@@ -93,6 +93,44 @@ def test_get_session_propagates_other_http_errors(
         client.get_session()
 
 
+# ---------- SC-004: auth errors never include the token ----------
+
+
+@responses.activate
+def test_auth_error_message_does_not_contain_token(
+    client: MocoClient,
+) -> None:
+    """Regression guard: any 401/403 must not echo the API token."""
+    responses.add(
+        responses.GET,
+        f"{BASE_URL}/session",
+        json={"error": "unauthorized"},
+        status=401,
+    )
+    with pytest.raises(AuthError) as exc_info:
+        client.get_session()
+    assert TOKEN not in str(exc_info.value)
+
+
+@responses.activate
+def test_get_session_does_not_print_token_on_auth_failure(
+    client: MocoClient, capsys
+) -> None:
+    responses.add(
+        responses.GET,
+        f"{BASE_URL}/session",
+        json={"error": "unauthorized"},
+        status=403,
+    )
+    try:
+        client.get_session()
+    except AuthError:
+        pass
+    captured = capsys.readouterr()
+    assert TOKEN not in captured.out
+    assert TOKEN not in captured.err
+
+
 def test_constructor_strips_trailing_slash_from_base_url() -> None:
     c = MocoClient(token=TOKEN, base_url=BASE_URL + "/")
     assert c._base_url == BASE_URL  # type: ignore[attr-defined]
