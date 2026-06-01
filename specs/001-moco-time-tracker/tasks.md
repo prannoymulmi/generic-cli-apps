@@ -31,7 +31,7 @@ Single-project layout from `plan.md` → "Project Structure":
 - [X] T002 Create `pyproject.toml` at repo root with `[project]` metadata (name `moco-filler`, Python `>=3.9` per Constitution Technology Stack, dev-pinned to 3.11 per `plan.md`), runtime deps `questionary` + `requests`, dev deps `pytest` + `responses`, and a `[project.scripts]` entry `moco-filler = "moco_filler.cli:main"` per `contracts/cli.md` § Invocation.
 - [X] T003 [P] Create `requirements.txt` at repo root mirroring `pyproject.toml`'s runtime and dev deps with pinned versions for reproducibility (Constitution Dependency Management).
 - [X] T004 [P] Create `README.md` at repo root that points contributors at `specs/001-moco-time-tracker/quickstart.md` for install + run instructions (per `plan.md` → Project Structure).
-- [ ] T005 [P] Add `.gitignore` at repo root covering `__pycache__/`, `.venv/`, `*.egg-info/`, `.pytest_cache/`, `dist/`, `build/` to keep build artifacts out of commits (supports Constitution §II atomic commits).
+- [X] T005 [P] Add `.gitignore` at repo root covering `__pycache__/`, `.venv/`, `*.egg-info/`, `.pytest_cache/`, `dist/`, `build/` to keep build artifacts out of commits (supports Constitution §II atomic commits).
 
 **Checkpoint**: `pip install -e .` succeeds and `moco-filler --help` runs (even if it does nothing useful yet).
 
