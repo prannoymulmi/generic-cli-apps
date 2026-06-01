@@ -10,7 +10,8 @@ class → exit code via a single lookup.
 
 from __future__ import annotations
 
-from typing import List
+from datetime import date
+from typing import Any, Dict, List, Optional
 
 import requests
 
@@ -74,14 +75,44 @@ class MocoClient:
             for project_data in raw
         ]
 
+    def get_activities(
+        self,
+        from_date: date,
+        to_date: date,
+        user_id: int,
+    ) -> List[Dict[str, Any]]:
+        """Return the user's existing activity records in the date range.
+
+        Per the 2026-06-01 clarification embedded in
+        ``contracts/moco-http.md`` § ``GET /activities``, we filter on
+        the date range and ``user_id`` only — **no** ``project_id`` /
+        ``task_id`` filter — so the planner can sum hours per date
+        across every project the user has booked against (FR-012).
+        """
+        response = self._get(
+            "/activities",
+            params={
+                "from": from_date.strftime("%Y-%m-%d"),
+                "to": to_date.strftime("%Y-%m-%d"),
+                "user_id": user_id,
+            },
+        )
+        raw = response.json()
+        return list(raw) if isinstance(raw, list) else []
+
     # ------------------------------------------------------------------
     # internals
     # ------------------------------------------------------------------
 
-    def _get(self, path: str) -> "requests.Response":
+    def _get(
+        self,
+        path: str,
+        params: Optional[Dict[str, Any]] = None,
+    ) -> "requests.Response":
         """GET ``path`` and map common error statuses to domain errors."""
         response = self._session.get(
             f"{self._base_url}{path}",
+            params=params,
             timeout=DEFAULT_TIMEOUT,
         )
         if response.status_code in (401, 403):

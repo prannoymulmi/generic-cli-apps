@@ -8,6 +8,9 @@ error → exception mapping.
 
 from __future__ import annotations
 
+from datetime import date
+from urllib.parse import parse_qs, urlparse
+
 import pytest
 import responses
 
@@ -176,3 +179,91 @@ def test_get_projects_assigned_raises_auth_error_on_401_or_403(
     )
     with pytest.raises(AuthError):
         client.get_projects_assigned()
+
+
+# ---------- GET /activities ----------
+
+
+_ACTIVITIES_PAYLOAD = [
+    {"date": "2026-06-03", "hours": 4.0},
+    {"date": "2026-06-04", "hours": 2.5},
+]
+
+
+@responses.activate
+def test_get_activities_returns_raw_list(client: MocoClient) -> None:
+    responses.add(
+        responses.GET,
+        f"{BASE_URL}/activities",
+        json=_ACTIVITIES_PAYLOAD,
+        status=200,
+    )
+    result = client.get_activities(
+        from_date=date(2026, 6, 1),
+        to_date=date(2026, 6, 30),
+        user_id=USER_ID,
+    )
+    assert result == _ACTIVITIES_PAYLOAD
+
+
+@responses.activate
+def test_get_activities_sends_only_date_range_and_user_id_params(
+    client: MocoClient,
+) -> None:
+    """Q4 clarification: NO project_id / task_id filter on this endpoint."""
+    responses.add(
+        responses.GET,
+        f"{BASE_URL}/activities",
+        json=[],
+        status=200,
+    )
+    client.get_activities(
+        from_date=date(2026, 6, 1),
+        to_date=date(2026, 6, 30),
+        user_id=USER_ID,
+    )
+    sent_url = responses.calls[0].request.url
+    params = parse_qs(urlparse(sent_url).query)
+    assert set(params.keys()) == {"from", "to", "user_id"}
+    assert params["from"] == ["2026-06-01"]
+    assert params["to"] == ["2026-06-30"]
+    assert params["user_id"] == [str(USER_ID)]
+    assert "project_id" not in params
+    assert "task_id" not in params
+
+
+@responses.activate
+def test_get_activities_returns_empty_list_when_no_records(
+    client: MocoClient,
+) -> None:
+    responses.add(
+        responses.GET,
+        f"{BASE_URL}/activities",
+        json=[],
+        status=200,
+    )
+    result = client.get_activities(
+        from_date=date(2026, 6, 1),
+        to_date=date(2026, 6, 30),
+        user_id=USER_ID,
+    )
+    assert result == []
+
+
+@responses.activate
+@pytest.mark.parametrize("status", [401, 403])
+def test_get_activities_raises_auth_error_on_401_or_403(
+    client: MocoClient, status: int
+) -> None:
+    responses.add(
+        responses.GET,
+        f"{BASE_URL}/activities",
+        json={"error": "x"},
+        status=status,
+    )
+    with pytest.raises(AuthError):
+        client.get_activities(
+            from_date=date(2026, 6, 1),
+            to_date=date(2026, 6, 30),
+            user_id=USER_ID,
+        )
