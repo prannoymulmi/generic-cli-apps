@@ -1,12 +1,12 @@
 # Quickstart: Table-Styled Preview
 
-**Feature**: 002-make-moco-filler
+**Feature**: 002-add-coloring-and-spacing-to-the-app
 
 **Date**: 2026-06-01
 
 This feature is a presentation refinement of the existing
 `moco-filler` CLI. The install + run workflow from
-[`specs/001-moco-time-tracker/quickstart.md`](../001-moco-time-tracker/quickstart.md)
+[`specs/001-create-mvp-moco-filler-app/quickstart.md`](../001-create-mvp-moco-filler-app/quickstart.md)
 is unchanged — only what you see on screen differs.
 
 ---

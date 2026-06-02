@@ -1,6 +1,6 @@
 # Research: Table-Styled Preview for moco-filler
 
-**Feature**: 002-make-moco-filler
+**Feature**: 002-add-coloring-and-spacing-to-the-app
 
 **Date**: 2026-06-01
 
@@ -279,7 +279,7 @@ helper has its own dedicated test file.
 NOT tested: the live Questionary loop, the actual terminal rendering, and the visual fidelity of the colour choices (those are gated by US1–US3's Independent Test sections, which are sandbox / manual checks).
 
 **Rationale**: Mirrors the same boundary feature 001 chose
-(`specs/001-moco-time-tracker/research.md` §8) — keep the test pyramid
+(`specs/001-create-mvp-moco-filler-app/research.md` §8) — keep the test pyramid
 small and the visual fidelity gated by manual review.
 
 ---

@@ -1,7 +1,7 @@
 """HTTP layer for the Moco activities API.
 
 Implements the four endpoints documented in
-``specs/001-moco-time-tracker/contracts/moco-http.md``. Every request
+``specs/001-create-mvp-moco-filler-app/contracts/moco-http.md``. Every request
 carries the ``Authorization: Token token=<API_KEY>`` header and a 15s
 timeout per research.md §7. Failures are mapped to the domain
 exceptions in ``errors.py`` so the CLI glue can translate exception

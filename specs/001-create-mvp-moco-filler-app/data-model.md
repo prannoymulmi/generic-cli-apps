@@ -1,6 +1,6 @@
 # Data Model: Moco Monthly Time Tracker CLI
 
-**Feature**: 001-moco-time-tracker
+**Feature**: 001-create-mvp-moco-filler-app
 **Date**: 2026-06-01
 
 All entities live in memory only — nothing is persisted by this tool.

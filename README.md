@@ -2,7 +2,7 @@
 
 This repository hosts small CLI tools. The first one is **moco-filler** —
 a Python CLI that fills a chosen month of Moco weekday time entries at 8
-hours/day. See [`specs/001-moco-time-tracker/quickstart.md`](specs/001-moco-time-tracker/quickstart.md)
+hours/day. See [`specs/001-create-mvp-moco-filler-app/quickstart.md`](specs/001-create-mvp-moco-filler-app/quickstart.md)
 for the full walkthrough, troubleshooting table, and SC-004 verification.
 
 ## 1. Install

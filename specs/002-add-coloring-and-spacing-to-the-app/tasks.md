@@ -1,12 +1,12 @@
 # Tasks: Table-Styled Preview for moco-filler
 
-**Input**: Design documents from `/specs/002-make-moco-filler/`
+**Input**: Design documents from `/specs/002-add-coloring-and-spacing-to-the-app/`
 
-**Branch**: `002-make-moco-filler`
+**Branch**: `002-add-coloring-and-spacing-to-the-app`
 
 **Date**: 2026-06-01
 
-**Tests**: Unit tests are MANDATORY per Constitution §IV (Unit Tests Only — non-negotiable). Each story's implementation tasks are paired with the unit-test tasks that cover their pure helpers. The live Questionary preview loop is intentionally not unit-tested (per `specs/001-moco-time-tracker/research.md` §8 and `research.md` §8); the helpers extracted from it are.
+**Tests**: Unit tests are MANDATORY per Constitution §IV (Unit Tests Only — non-negotiable). Each story's implementation tasks are paired with the unit-test tasks that cover their pure helpers. The live Questionary preview loop is intentionally not unit-tested (per `specs/001-create-mvp-moco-filler-app/research.md` §8 and `research.md` §8); the helpers extracted from it are.
 
 **Organization**: Tasks are grouped by user story so each story can be implemented, committed, and tested as an independent atomic increment per Constitution §II.
 
@@ -121,7 +121,7 @@ No new dependencies, no new packages — this feature is presentation-only on to
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T028 [P] Update `README.md` to mention the `NO_COLOR=1` opt-out for monochrome output (so a casual reader doesn't have to dig through `specs/002-make-moco-filler/quickstart.md`).
+- [ ] T028 [P] Update `README.md` to mention the `NO_COLOR=1` opt-out for monochrome output (so a casual reader doesn't have to dig through `specs/002-add-coloring-and-spacing-to-the-app/quickstart.md`).
 - [ ] T029 [P] Run the full test suite (`pytest`) from the repo root and confirm 100% of the pre-existing tests still pass (SC-006 — no behavioural regression).
 - [ ] T030 Perform the `quickstart.md` §4 smoke check end to end: header alignment, three distinct state colours, cursor visible on every row state, `NO_COLOR=1` produces clean monochrome, an edit-and-approve round trip produces the same Moco entries as feature 001 (SC-001 through SC-006).
 

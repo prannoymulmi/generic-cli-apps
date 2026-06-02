@@ -1,11 +1,11 @@
 # Data Model: Table-Styled Preview for moco-filler
 
-**Feature**: 002-make-moco-filler
+**Feature**: 002-add-coloring-and-spacing-to-the-app
 
 **Date**: 2026-06-01
 
 This feature introduces no new domain entities. Every existing
-dataclass from `specs/001-moco-time-tracker/data-model.md`
+dataclass from `specs/001-create-mvp-moco-filler-app/data-model.md`
 (`ApiCredentials`, `Project`, `Task`, `PlannedEntry`,
 `SubmissionBatch`, `EntryResult`, `SubmissionResult`) is reused
 unchanged.

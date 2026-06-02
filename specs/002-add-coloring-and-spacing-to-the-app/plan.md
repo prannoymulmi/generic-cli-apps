@@ -1,8 +1,8 @@
 # Implementation Plan: Table-Styled Preview for moco-filler
 
-**Branch**: `002-make-moco-filler` | **Date**: 2026-06-01 | **Spec**: [spec.md](./spec.md)
+**Branch**: `002-add-coloring-and-spacing-to-the-app` | **Date**: 2026-06-01 | **Spec**: [spec.md](./spec.md)
 
-**Input**: Feature specification from `/specs/002-make-moco-filler/spec.md`
+**Input**: Feature specification from `/specs/002-add-coloring-and-spacing-to-the-app/spec.md`
 
 ## Summary
 
@@ -13,7 +13,7 @@ already-logged / skipped) coloured distinctly, and the focused row
 carrying a left-edge marker plus a contrasting background so the cursor
 is never lost. The change is presentation-only: the planner, HTTP
 client, models, exit codes, and stdout-scrape contract from
-`specs/001-moco-time-tracker/contracts/cli.md` are untouched.
+`specs/001-create-mvp-moco-filler-app/contracts/cli.md` are untouched.
 
 Per Constitution §I we stay on Questionary; no `rich`, `textual`, or
 direct `curses` is introduced. The visual upgrade rides on two
@@ -49,7 +49,7 @@ from feature 001; ≥ 3.9 per constitution).
 **Testing**: `pytest`. New unit tests for the styling module (palette
 selection, NO_COLOR / non-TTY fallback, row tuple shape). The live
 Questionary loop is still not unit-tested (per the §IV carve-out in
-`specs/001-moco-time-tracker/research.md` §8).
+`specs/001-create-mvp-moco-filler-app/research.md` §8).
 
 **Target Platform**: macOS / Linux terminal — same as feature 001.
 Color requires an attached TTY that does not opt out via `NO_COLOR`;
@@ -95,7 +95,7 @@ below is left empty.
 ### Documentation (this feature)
 
 ```text
-specs/002-make-moco-filler/
+specs/002-add-coloring-and-spacing-to-the-app/
 ├── plan.md              # This file (/speckit-plan output)
 ├── research.md          # Phase 0 output — styling + NO_COLOR decisions
 ├── data-model.md        # Phase 1 output — Row presentation (derived view)

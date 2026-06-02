@@ -1,6 +1,6 @@
 # Contract: CLI Surface
 
-**Feature**: 001-moco-time-tracker
+**Feature**: 001-create-mvp-moco-filler-app
 **Date**: 2026-06-01
 
 This is the **external** contract this project exposes — the command the user

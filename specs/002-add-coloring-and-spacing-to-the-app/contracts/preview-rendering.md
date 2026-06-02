@@ -1,13 +1,13 @@
 # Contract: Preview Rendering
 
-**Feature**: 002-make-moco-filler
+**Feature**: 002-add-coloring-and-spacing-to-the-app
 
 **Date**: 2026-06-01
 
 This is the **internal** rendering contract between `styling.py`,
 `preview.py`, and the user-visible terminal. It is NOT a CLI surface —
 the public CLI contract from
-`specs/001-moco-time-tracker/contracts/cli.md` (flags, stdout lines,
+`specs/001-create-mvp-moco-filler-app/contracts/cli.md` (flags, stdout lines,
 exit codes) is unchanged by this feature.
 
 ---

@@ -4,7 +4,7 @@ The thin glue between Questionary, the Moco HTTP client, the planner,
 and the preview. Each step is a small dispatch into another module per
 Constitution §V, so this file should read top-to-bottom as the
 "interactive flow" laid out in
-``specs/001-moco-time-tracker/contracts/cli.md``.
+``specs/001-create-mvp-moco-filler-app/contracts/cli.md``.
 
 US1 reads the API key from ``MOCO_API_KEY`` only; US2 (T024) replaces
 that with the env-or-masked-prompt fallback.
@@ -36,6 +36,7 @@ from moco_filler.models import (
 )
 from moco_filler.planner import build_planned_entries
 from moco_filler.preview import show_preview
+from moco_filler.styling import select_kwargs
 
 
 MOCO_BASE_URL = "https://statista.mocoapp.com/api/v1"
@@ -136,6 +137,7 @@ def _pick_project(projects: List[Project]) -> Optional[Project]:
             questionary.Choice(title=p.name, value=p)
             for p in sorted_projects
         ],
+        **select_kwargs(),
     ).ask()
 
 
@@ -155,6 +157,7 @@ def _pick_task(project: Project) -> Optional[Task]:
             for t in project.tasks
         ],
         default=default_task.name if default_task else None,
+        **select_kwargs(),
     ).ask()
 
 

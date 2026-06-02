@@ -1,6 +1,6 @@
 # Feature Specification: Make moco-filler Preview Look Like a Table
 
-**Feature Branch**: `002-make-moco-filler`
+**Feature Branch**: `002-add-coloring-and-spacing-to-the-app`
 
 **Created**: 2026-06-01
 
@@ -266,6 +266,6 @@ focus marker that is present on exactly one row at a time.
   underlying domain models (`PlannedEntry`, `SubmissionBatch`, etc.),
   the HTTP client, and the existing exit codes are unchanged.
 - The CLI's stdout contract (the five exact lines documented in
-  `specs/001-moco-time-tracker/contracts/cli.md` § stdout / stderr
+  `specs/001-create-mvp-moco-filler-app/contracts/cli.md` § stdout / stderr
   contract) is not changed by this feature, so any external tooling
   that scrapes those lines keeps working.

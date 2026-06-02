@@ -4,7 +4,7 @@ Each exception class carries the exit code that the top-level CLI returns
 when it propagates. Centralising the mapping here keeps the CLI glue thin
 and makes per-error behaviour explicitly testable.
 
-Exit codes follow ``specs/001-moco-time-tracker/contracts/cli.md`` §
+Exit codes follow ``specs/001-create-mvp-moco-filler-app/contracts/cli.md`` §
 "Exit codes" and ``research.md`` §6.
 """
 

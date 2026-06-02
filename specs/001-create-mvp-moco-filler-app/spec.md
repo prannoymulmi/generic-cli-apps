@@ -1,6 +1,6 @@
 # Feature Specification: Moco Monthly Time Tracker CLI
 
-**Feature Branch**: `001-moco-time-tracker`
+**Feature Branch**: `001-create-mvp-moco-filler-app`
 
 **Created**: 2026-06-01
 

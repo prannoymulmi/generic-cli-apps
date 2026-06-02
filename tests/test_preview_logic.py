@@ -1,6 +1,6 @@
 """Pure-helper tests for moco_filler.preview.
 
-Per ``specs/001-moco-time-tracker/research.md`` §8, the live Questionary
+Per ``specs/001-create-mvp-moco-filler-app/research.md`` §8, the live Questionary
 loop is intentionally **not** unit-tested — these tests exercise only
 the deterministic helpers (row format, label dispatch, running-total,
 next-included-row).

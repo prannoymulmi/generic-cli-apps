@@ -1,8 +1,8 @@
 # Implementation Plan: Moco Monthly Time Tracker CLI
 
-**Branch**: `001-moco-time-tracker` | **Date**: 2026-06-01 | **Spec**: [spec.md](./spec.md)
+**Branch**: `001-create-mvp-moco-filler-app` | **Date**: 2026-06-01 | **Spec**: [spec.md](./spec.md)
 
-**Input**: Feature specification from `/specs/001-moco-time-tracker/spec.md`
+**Input**: Feature specification from `/specs/001-create-mvp-moco-filler-app/spec.md`
 
 ## Summary
 
@@ -83,7 +83,7 @@ project + one task per run.
 ### Documentation (this feature)
 
 ```text
-specs/001-moco-time-tracker/
+specs/001-create-mvp-moco-filler-app/
 ├── plan.md              # This file (/speckit-plan output)
 ├── research.md          # Phase 0 output — Moco API + UX decisions
 ├── data-model.md        # Phase 1 output — in-memory entities
@@ -125,7 +125,7 @@ tests/
 
 pyproject.toml             # Defines `moco-filler` console script + deps
 requirements.txt           # Pinned versions (mirrors pyproject for reproducibility)
-README.md                  # Pointer to specs/001-moco-time-tracker/quickstart.md
+README.md                  # Pointer to specs/001-create-mvp-moco-filler-app/quickstart.md
 ```
 
 **Structure Decision**: Single project layout under `src/moco_filler/`.

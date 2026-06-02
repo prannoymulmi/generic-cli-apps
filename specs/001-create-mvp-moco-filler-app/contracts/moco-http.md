@@ -1,6 +1,6 @@
 # Contract: Moco HTTP API (consumed)
 
-**Feature**: 001-moco-time-tracker
+**Feature**: 001-create-mvp-moco-filler-app
 **Date**: 2026-06-01
 
 This is the **inbound** dependency contract — the shape of the Moco API

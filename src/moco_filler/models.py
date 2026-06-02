@@ -1,6 +1,6 @@
 """In-memory data shapes for moco-filler.
 
-Mirrors ``specs/001-moco-time-tracker/data-model.md``. Nothing here is
+Mirrors ``specs/001-create-mvp-moco-filler-app/data-model.md``. Nothing here is
 persisted: the API key and every session entity live only for the
 duration of one run.
 """
