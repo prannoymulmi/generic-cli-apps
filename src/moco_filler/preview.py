@@ -24,6 +24,29 @@ import questionary
 
 from moco_filler.models import PlannedEntry
 from moco_filler.planner import set_hours, toggle_skipped
+from moco_filler.styling import (
+    format_header,
+    format_row,
+    format_styled_header,
+    format_styled_row,
+    select_kwargs,
+    state_label,
+)
+
+# Re-export feature 001's pure helpers so the existing `from
+# moco_filler.preview import format_row, format_header, state_label`
+# imports in `tests/test_preview_logic.py` keep working.
+__all__ = [
+    "show_preview",
+    "PreviewDecision",
+    "APPROVE_VALUE",
+    "CANCEL_VALUE",
+    "format_row",
+    "format_header",
+    "state_label",
+    "running_total",
+    "next_included_row",
+]
 
 
 APPROVE_VALUE = "__approve__"
@@ -47,6 +70,7 @@ def show_preview(entries: List[PlannedEntry]) -> PreviewDecision:
         choice = questionary.select(
             _preview_prompt(entries),
             choices=_build_choices(entries),
+            **select_kwargs(),
         ).ask()
 
         if choice == APPROVE_VALUE:
@@ -72,7 +96,7 @@ def _build_choices(entries: List[PlannedEntry]) -> list:
     """
     items: list = [questionary.Separator(format_header())]
     items.extend(
-        questionary.Choice(title=format_row(entry), value=index)
+        questionary.Choice(title=format_styled_row(entry), value=index)
         for index, entry in enumerate(entries)
     )
     items.append(questionary.Separator())
@@ -98,12 +122,14 @@ def _edit_row(
         result = questionary.select(
             f"{format_row(row)} — locked (already logged)",
             choices=[questionary.Choice(title="Back", value=BACK_VALUE)],
+            **select_kwargs(),
         ).ask()
         return "cancel" if result is None else None
 
     action = questionary.select(
         f"{format_row(row)} — choose an action:",
         choices=_row_actions(row),
+        **select_kwargs(),
     ).ask()
 
     if action is None:
@@ -146,6 +172,7 @@ def _prompt_hours(row: PlannedEntry) -> Optional[Decimal]:
         f"Hours for {row.date.isoformat()} (0–8):",
         default=f"{row.hours}",
         validate=_validate_hours,
+        **select_kwargs(),
     ).ask()
     if answer is None:
         return None
@@ -166,44 +193,9 @@ def _validate_hours(value: str):
 
 
 # ---- pure helpers (importable for tests) --------------------------------
-
-
-def format_row(entry: PlannedEntry) -> str:
-    """Render one PlannedEntry as the columnar choice string.
-
-    Column layout per
-    ``specs/002-make-moco-filler/contracts/preview-rendering.md``:
-    Day=3 left, Date=10 left, Hours=5 right, State=flex left, with a
-    literal two-space gap between every column.
-    """
-    hours_str = f"{entry.hours:.2f}h"
-    return (
-        f"{entry.weekday:<3}  "
-        f"{entry.date.isoformat():<10}  "
-        f"{hours_str:>5}  "
-        f"{state_label(entry)}"
-    )
-
-
-def format_header() -> str:
-    """Header row matching :func:`format_row`'s column anchors (US1.AC-2)."""
-    return (
-        f"{'Day':<3}  "
-        f"{'Date':<10}  "
-        f"{'Hours':>5}  "
-        f"State"
-    )
-
-
-def state_label(entry: PlannedEntry) -> str:
-    """Return the bracketed state suffix for a preview row."""
-    if entry.already_logged:
-        return "[already logged]"
-    if not entry.included:
-        return "[skipped]"
-    if entry.existing_hours_total > Decimal("0"):
-        return f"[top-up: existing {entry.existing_hours_total:.2f}h]"
-    return "[planned]"
+# `format_row`, `format_header`, and `state_label` are owned by `styling`
+# and re-exported above; only the preview-loop math (running_total /
+# next_included_row) lives here.
 
 
 def running_total(entries: List[PlannedEntry]) -> Decimal:
