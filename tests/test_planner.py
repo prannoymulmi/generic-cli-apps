@@ -287,3 +287,157 @@ def test_toggle_skipped_on_already_logged_row_is_refused() -> None:
     """FR-012: locked rows cannot be toggled back to included."""
     with pytest.raises(ValueError):
         toggle_skipped(_locked_row())
+
+
+# ---- feature 003 / 004: Hamburg holiday catalogue (US1) -----------------
+
+
+def test_holiday_weekday_is_auto_skipped() -> None:
+    """US1 AC-1: a Hamburg holiday weekday is built as not-included."""
+    entries = build_planned_entries(
+        2026,
+        5,
+        [],
+        holiday_catalogue={date(2026, 5, 1): "Tag der Arbeit"},
+    )
+    by_date = {e.date: e for e in entries}
+    holiday = by_date[date(2026, 5, 1)]
+    assert holiday.holiday_name == "Tag der Arbeit"
+    assert holiday.included is False
+    assert holiday.hours == Decimal("0")
+    assert holiday.already_logged is False
+    assert holiday.is_submitable is False
+
+
+def test_other_weekdays_unchanged_when_holiday_catalogue_set() -> None:
+    """Only the catalogue dates are affected; everything else is normal."""
+    entries = build_planned_entries(
+        2026,
+        5,
+        [],
+        holiday_catalogue={date(2026, 5, 1): "Tag der Arbeit"},
+    )
+    non_holiday = [e for e in entries if e.date != date(2026, 5, 1)]
+    for e in non_holiday:
+        assert e.hours == Decimal("8")
+        assert e.included is True
+        assert e.holiday_name is None
+
+
+def test_holiday_plus_already_logged_yields_locked_with_holiday_metadata() -> None:
+    """FR-005: already-logged wins, but holiday_name is preserved."""
+    entries = build_planned_entries(
+        2026,
+        4,
+        [_activity("2026-04-03", 8.0)],  # Karfreitag, fully logged
+        holiday_catalogue={date(2026, 4, 3): "Karfreitag"},
+    )
+    by_date = {e.date: e for e in entries}
+    row = by_date[date(2026, 4, 3)]
+    assert row.already_logged is True
+    assert row.included is False
+    assert row.holiday_name == "Karfreitag"
+
+
+def test_empty_holiday_catalogue_is_graceful_fallback() -> None:
+    """FR-007 / FR-013: an empty catalogue means no holidays marked."""
+    entries = build_planned_entries(2026, 6, [], holiday_catalogue={})
+    for e in entries:
+        assert e.holiday_name is None
+        assert e.hours == Decimal("8")
+        assert e.included is True
+
+
+def test_no_holiday_catalogue_argument_matches_old_behaviour() -> None:
+    """Existing call sites without the new argument keep working."""
+    entries = build_planned_entries(2026, 6, [])
+    for e in entries:
+        assert e.holiday_name is None
+
+
+# ---- feature 003 / 004: US3 override loop -------------------------------
+
+
+def _holiday_auto_skipped(d: date = date(2026, 5, 1)) -> PlannedEntry:
+    """A row in the canonical 'holiday auto-skipped' shape."""
+    return PlannedEntry(
+        date=d,
+        weekday=d.strftime("%a"),
+        existing_hours_total=Decimal("0"),
+        hours=Decimal("0"),
+        included=False,
+        already_logged=False,
+        note="Holiday: Tag der Arbeit",
+        holiday_name="Tag der Arbeit",
+    )
+
+
+def test_toggle_skipped_includes_holiday_row_with_default_hours() -> None:
+    """US3 AC-1: re-including a holiday row produces a submitable row."""
+    row = _holiday_auto_skipped()
+    overridden = toggle_skipped(row)
+    assert overridden.included is True
+    assert overridden.hours == Decimal("8")
+    assert overridden.holiday_name == "Tag der Arbeit"  # metadata kept
+    assert overridden.is_submitable is True
+
+
+def test_toggle_skipped_includes_holiday_row_with_existing_hours_tops_up() -> None:
+    """Re-including a holiday day that has partial pre-existing hours tops up."""
+    row = PlannedEntry(
+        date=date(2026, 5, 1),
+        weekday="Fri",
+        existing_hours_total=Decimal("3"),
+        hours=Decimal("0"),
+        included=False,
+        already_logged=False,
+        note="Holiday: Tag der Arbeit",
+        holiday_name="Tag der Arbeit",
+    )
+    overridden = toggle_skipped(row)
+    assert overridden.included is True
+    assert overridden.hours == Decimal("5")  # 8 - 3 existing
+    assert overridden.holiday_name == "Tag der Arbeit"
+
+
+def test_toggle_skipped_re_skips_overridden_holiday_to_canonical_shape() -> None:
+    """FR-007: re-skipping a re-included holiday returns to hours=0."""
+    overridden = PlannedEntry(
+        date=date(2026, 5, 1),
+        weekday="Fri",
+        existing_hours_total=Decimal("0"),
+        hours=Decimal("8"),
+        included=True,
+        already_logged=False,
+        note="Holiday: Tag der Arbeit",
+        holiday_name="Tag der Arbeit",
+    )
+    re_skipped = toggle_skipped(overridden)
+    assert re_skipped.included is False
+    assert re_skipped.hours == Decimal("0")
+    assert re_skipped.holiday_name == "Tag der Arbeit"
+
+
+def test_toggle_skipped_on_already_logged_holiday_still_refused() -> None:
+    """The FR-012 lock applies to any already-logged row, holiday or not."""
+    row = PlannedEntry(
+        date=date(2026, 4, 3),
+        weekday="Fri",
+        existing_hours_total=Decimal("8"),
+        hours=Decimal("0"),
+        included=False,
+        already_logged=True,
+        note="Already logged (8.00h, day full)",
+        holiday_name="Karfreitag",
+    )
+    with pytest.raises(ValueError):
+        toggle_skipped(row)
+
+
+def test_toggle_skipped_non_holiday_row_still_preserves_hours() -> None:
+    """Regression: non-holiday rows keep the original toggle behaviour."""
+    row = _plain_row()
+    skipped = toggle_skipped(row)
+    # The pre-existing behaviour: hours preserved across skip on non-holiday rows.
+    assert skipped.included is False
+    assert skipped.hours == row.hours

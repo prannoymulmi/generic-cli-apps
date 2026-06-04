@@ -71,6 +71,7 @@ class PlannedEntry:
     included: bool
     already_logged: bool
     note: Optional[str] = None
+    holiday_name: Optional[str] = None
 
     def __post_init__(self) -> None:
         if self.date.weekday() >= 5:

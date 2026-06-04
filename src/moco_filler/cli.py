@@ -27,6 +27,7 @@ from moco_filler.errors import (
     NoTasksError,
     NothingToSubmitError,
 )
+from moco_filler.holidays import get_hamburg_holidays
 from moco_filler.moco_client import MocoClient
 from moco_filler.models import (
     Project,
@@ -102,12 +103,15 @@ def _run(args: argparse.Namespace) -> int:
         return _cancelled()
 
     weekdays = weekday_dates(year, month)
+    holiday_catalogue = get_hamburg_holidays(year)
     activities = client.get_activities(
         from_date=weekdays[0],
         to_date=weekdays[-1],
         user_id=user_id,
     )
-    entries = build_planned_entries(year, month, activities)
+    entries = build_planned_entries(
+        year, month, activities, holiday_catalogue
+    )
 
     decision = show_preview(entries)
     if decision == "cancel":

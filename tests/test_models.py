@@ -94,6 +94,45 @@ def test_planned_entry_already_logged_with_included_false_is_valid() -> None:
     assert entry.included is False
 
 
+# ---- PlannedEntry.holiday_name (feature 003 / 004) ----------------------
+
+
+def test_planned_entry_holiday_name_defaults_to_none() -> None:
+    """Existing call sites that don't pass holiday_name still work."""
+    assert _entry().holiday_name is None
+
+
+def test_planned_entry_holiday_name_can_be_set_to_a_string() -> None:
+    entry = PlannedEntry(
+        date=WEEKDAY,
+        weekday=WEEKDAY.strftime("%a"),
+        existing_hours_total=Decimal("0"),
+        hours=Decimal("0"),
+        included=False,
+        already_logged=False,
+        note="Holiday: Karfreitag",
+        holiday_name="Karfreitag",
+    )
+    assert entry.holiday_name == "Karfreitag"
+    assert entry.is_submitable is False  # not included, hours=0
+
+
+def test_planned_entry_holiday_plus_already_logged_is_constructible() -> None:
+    """FR-005 precedence shape: holiday metadata preserved on a locked row."""
+    entry = PlannedEntry(
+        date=WEEKDAY,
+        weekday=WEEKDAY.strftime("%a"),
+        existing_hours_total=Decimal("8"),
+        hours=Decimal("0"),
+        included=False,
+        already_logged=True,
+        note="Already logged (8.00h, day full)",
+        holiday_name="Karfreitag",
+    )
+    assert entry.already_logged is True
+    assert entry.holiday_name == "Karfreitag"
+
+
 def test_is_submitable_true_when_default_planned_row() -> None:
     assert _entry().is_submitable is True
 

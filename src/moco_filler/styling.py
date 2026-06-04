@@ -72,6 +72,7 @@ _PALETTE: dict = {
     "row.topup": "fg:#ffd75f",          # yellow — partial day top-up
     "row.locked": "fg:#808080",         # dim grey — already logged
     "row.skipped": "fg:#af5f5f",        # dim red — user-skipped row
+    "row.holiday": "fg:#d75fd7 bold",   # bright magenta — Hamburg holiday auto-skip
 }
 
 
@@ -131,6 +132,8 @@ def state_label(entry: PlannedEntry) -> str:
     """Return the bracketed state suffix for a preview row."""
     if entry.already_logged:
         return "[already logged]"
+    if entry.holiday_name and not entry.included:
+        return f"[holiday: {entry.holiday_name}]"
     if not entry.included:
         return "[skipped]"
     if entry.existing_hours_total > Decimal("0"):
@@ -168,11 +171,14 @@ def format_header() -> str:
 def _row_class(entry: PlannedEntry) -> str:
     """Map a PlannedEntry's state to the matching ``row.*`` class.
 
-    The four arms are mutually exclusive for any valid PlannedEntry
-    (see ``data-model.md`` § RowPresentation).
+    The five arms are mutually exclusive and exhaustive for any valid
+    PlannedEntry (see ``specs/004-cache-holidays-locally/research.md``
+    §9 — already-logged wins over the holiday auto-skip per FR-005).
     """
     if entry.already_logged:
         return "row.locked"
+    if entry.holiday_name and not entry.included:
+        return "row.holiday"
     if not entry.included:
         return "row.skipped"
     if entry.existing_hours_total > Decimal("0"):

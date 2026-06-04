@@ -44,9 +44,32 @@ The interactive flow (per `contracts/cli.md`):
 3. Preview — one row per Mon–Fri of the chosen month. Existing entries
    (across **all** projects/tasks) top each day up to 8h; days already
    at ≥ 8h appear as `[already logged]` and are locked (FR-012).
+   Hamburg public holidays are auto-skipped and labelled
+   `[holiday: <name>]` in the preview (features 003 / 004).
 4. On any row: `Skip` / `Include` / `Change hours` (0–8) / `Back`.
+   `Include` on a holiday row overrides the auto-skip; `Skip` again
+   restores it.
 5. `✅ Approve & submit` → one `POST /activities/bulk` request.
 6. `❌ Cancel` (or Ctrl-C) → exits without contacting Moco.
+
+## Hamburg holiday cache
+
+The first run that needs a calendar year fetches its Hamburg holidays
+from `date.nager.at` and writes them to a per-user cache:
+
+| Platform | Path |
+|----------|------|
+| macOS | `~/Library/Caches/moco-filler/holidays.json` |
+| Linux | `${XDG_CACHE_HOME:-$HOME/.cache}/moco-filler/holidays.json` |
+| Windows | `%LOCALAPPDATA%\moco-filler\Cache\holidays.json` |
+
+Subsequent runs read from the cache — no further network calls for
+holiday data. **To force a refresh**, delete the file (or the inner
+year entry); the next run repopulates it. If the source is unreachable
+on a cold cache, the CLI degrades silently (no holiday rows marked,
+no crash); next online run repopulates. See
+[`specs/004-cache-holidays-locally/quickstart.md`](specs/004-cache-holidays-locally/quickstart.md)
+for the full reference.
 
 ## Tests
 

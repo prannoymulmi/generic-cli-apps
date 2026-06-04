@@ -96,6 +96,58 @@ def test_state_label_skipped_row() -> None:
     assert state_label(_skipped()) == "[skipped]"
 
 
+# ---- US2 (feature 003 / 004): holiday state label dispatch -------------
+
+
+def _holiday(d: date = date(2026, 5, 1)) -> PlannedEntry:
+    return PlannedEntry(
+        date=d,
+        weekday=d.strftime("%a"),
+        existing_hours_total=Decimal("0"),
+        hours=Decimal("0"),
+        included=False,
+        already_logged=False,
+        note="Holiday: Tag der Arbeit",
+        holiday_name="Tag der Arbeit",
+    )
+
+
+def test_state_label_holiday_row_shows_german_name() -> None:
+    """A holiday auto-skipped row → ``[holiday: <name>]`` not ``[skipped]``."""
+    assert state_label(_holiday()) == "[holiday: Tag der Arbeit]"
+
+
+def test_state_label_holiday_plus_already_logged_uses_already_logged() -> None:
+    """FR-005: already-logged wins, holiday name preserved as metadata only."""
+    row = PlannedEntry(
+        date=date(2026, 4, 3),
+        weekday="Fri",
+        existing_hours_total=Decimal("8"),
+        hours=Decimal("0"),
+        included=False,
+        already_logged=True,
+        note="Already logged (8.00h, day full)",
+        holiday_name="Karfreitag",
+    )
+    assert state_label(row) == "[already logged]"
+
+
+def test_state_label_holiday_overridden_back_to_included_drops_label() -> None:
+    """FR-006: re-including a holiday row removes the auto-skip label."""
+    row = PlannedEntry(
+        date=date(2026, 5, 1),
+        weekday="Fri",
+        existing_hours_total=Decimal("0"),
+        hours=Decimal("8"),
+        included=True,
+        already_logged=False,
+        note="Holiday: Tag der Arbeit",
+        holiday_name="Tag der Arbeit",
+    )
+    # No `[holiday: ...]` — it's now a normal planned row.
+    assert state_label(row) == "[planned]"
+
+
 # ---------- format_row contracts/cli.md examples ----------
 
 

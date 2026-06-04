@@ -280,3 +280,86 @@ def test_select_kwargs_is_empty_when_color_disabled(
     """No ``style=None`` leaks per `contracts/preview-rendering.md`."""
     _color_off_via_no_color(monkeypatch)
     assert styling.select_kwargs() == {}
+
+
+# ---------- US2 (feature 003 / 004): holiday row style class ----------
+
+
+def _holiday_row(d: date = date(2026, 5, 1)) -> PlannedEntry:
+    return PlannedEntry(
+        date=d,
+        weekday=d.strftime("%a"),
+        existing_hours_total=Decimal("0"),
+        hours=Decimal("0"),
+        included=False,
+        already_logged=False,
+        note="Holiday: Tag der Arbeit",
+        holiday_name="Tag der Arbeit",
+    )
+
+
+def test_build_style_declares_row_holiday_class(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _color_on(monkeypatch)
+    style = styling.build_style()
+    declared_classes = {selector for selector, _ in style.style_rules}
+    assert "row.holiday" in declared_classes
+
+
+def test_format_styled_row_holiday_uses_row_holiday_class(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _color_on(monkeypatch)
+    rendered = styling.format_styled_row(_holiday_row())
+    assert isinstance(rendered, list)
+    assert rendered[0][0] == "class:row.holiday"
+    assert "[holiday: Tag der Arbeit]" in rendered[0][1]
+
+
+def test_format_styled_row_holiday_plus_already_logged_uses_row_locked(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """FR-005: already-logged wins over the holiday auto-skip dispatch."""
+    _color_on(monkeypatch)
+    row = PlannedEntry(
+        date=date(2026, 4, 3),
+        weekday="Fri",
+        existing_hours_total=Decimal("8"),
+        hours=Decimal("0"),
+        included=False,
+        already_logged=True,
+        note="Already logged (8.00h, day full)",
+        holiday_name="Karfreitag",
+    )
+    rendered = styling.format_styled_row(row)
+    assert rendered[0][0] == "class:row.locked"
+
+
+def test_format_styled_row_overridden_holiday_uses_row_planned(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """FR-006: an overridden (re-included) holiday row renders as planned."""
+    _color_on(monkeypatch)
+    row = PlannedEntry(
+        date=date(2026, 5, 1),
+        weekday="Fri",
+        existing_hours_total=Decimal("0"),
+        hours=Decimal("8"),
+        included=True,
+        already_logged=False,
+        note="Holiday: Tag der Arbeit",
+        holiday_name="Tag der Arbeit",
+    )
+    rendered = styling.format_styled_row(row)
+    assert rendered[0][0] == "class:row.planned"
+
+
+def test_format_styled_row_holiday_in_monochrome_preserves_label(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """FR-008: textual `[holiday: ...]` label still visible without colour."""
+    _color_off_via_no_color(monkeypatch)
+    rendered = styling.format_styled_row(_holiday_row())
+    assert isinstance(rendered, str)
+    assert "[holiday: Tag der Arbeit]" in rendered
