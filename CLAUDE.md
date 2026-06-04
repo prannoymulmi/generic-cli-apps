@@ -1,5 +1,5 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-specs/002-add-coloring-and-spacing-to-the-app/plan.md
+specs/004-cache-holidays-locally/plan.md
 <!-- SPECKIT END -->
