@@ -28,6 +28,38 @@ holiday row, override, fallback when no holiday data is available) is
 unchanged; only the source of the holiday list moves from
 "compiled-in" to "fetched once, cached locally".
 
+## Clarifications
+
+### Session 2026-06-04
+
+- Q: What should the user see during the first-run holiday fetch
+  while it is in flight (later reframed in Q3 below as up to ~5 s
+  of total wall-clock time)? → A: Print a single-line
+  status message (e.g., `Fetching Hamburg public holidays for
+  2026…`) to **stderr** before the preview opens, so the CLI doesn't
+  feel frozen during the fetch and the stdout-scrape contract from
+  feature 001 stays unaffected.
+- Q: How strictly should the tool validate the response from the
+  external holiday source before caching it? → A: **Light
+  structural validation only.** The response must parse into a list
+  of (date, holiday name) pairs and every date must fall in the
+  requested calendar year. The tool does NOT enforce a count
+  envelope and does NOT cross-check against a hard-coded Hamburg
+  catalogue — so a future legitimate change to Hamburg's holiday law
+  is honoured automatically, while parse failures and obviously
+  off-year responses are still rejected.
+- Q: What is the retry policy on a transient cold-cache fetch
+  failure, and how is the time budget reconciled with FR-008's
+  original 1.5 s cap? → A: **Up to three total attempts with
+  exponential backoff; per-attempt timeout ~1.5 s; total cold-cache
+  wall-clock budget ~5 s** (formerly 1.5 s — that earlier value
+  applied to a single attempt and is reframed below). Backoffs are
+  ~200 ms after the first failure and ~600 ms after the second. If
+  the 5 s budget is exhausted with no successful attempt, the tool
+  degrades per FR-007 (no holiday rows marked for that year on this
+  machine until next online run). The FR-015 stderr status line
+  prevents the longer cold-cache wait from feeling like a freeze.
+
 ## User Scenarios & Testing *(mandatory)*
 
 A user runs `moco-filler` for a chosen month. The CLI needs the Hamburg
@@ -176,11 +208,16 @@ shows the preview without any holiday rows marked (same as feature
   pre-amendment list until the user explicitly deletes it. This is
   an accepted limitation — explicit cache invalidation is the
   user's tool.
-- **An obviously bogus response from the source** (e.g., zero
-  holidays returned, or hundreds): the tool may choose to reject
-  the response without persisting it; the spec does not require
-  validation beyond "the parsed result is structurally well-formed
-  for the catalogue's expected shape".
+- **A malformed or off-year response from the source**: the tool
+  applies light structural validation before persisting (see
+  FR-016). Responses that fail to parse as a list of (date, holiday
+  name) pairs, or that contain any date outside the requested
+  calendar year, are rejected and counted as a failed attempt that
+  feeds the retry path in FR-017; only after all three attempts
+  fail does the tool fall through to FR-007. Count anomalies (zero
+  holidays returned, hundreds returned) are NOT cause for rejection
+  on their own — the tool trusts the authoritative source about
+  how many Hamburg holidays exist in a given year.
 
 ## Requirements *(mandatory)*
 
@@ -215,10 +252,14 @@ shows the preview without any holiday rows marked (same as feature
   unreachable AND no usable cache exists for the requested year, the
   tool MUST fall back to the feature-003 unknown-year behaviour: no
   rows marked holiday, no error message, the CLI continues normally.
-- **FR-008**: If the network fetch is slow, the tool MUST NOT block
-  the interactive CLI for longer than 1.5 seconds waiting for the
-  holiday source; if the source takes longer, the tool aborts the
-  fetch and degrades per FR-007.
+- **FR-008**: The cold-cache fetch path MUST be bounded by **two**
+  separate ceilings: a per-attempt timeout of approximately 1.5
+  seconds (after which that attempt is aborted and the retry logic
+  in FR-017 takes over), and a total wall-clock budget of
+  approximately 5 seconds covering all retries and backoffs (after
+  which the tool stops retrying and degrades per FR-007). The
+  FR-015 stderr status line is what keeps the longer wait from
+  feeling like a freeze.
 - **FR-009**: The cache file MUST contain only public holiday data
   and the metadata needed to read it back (e.g., region, year,
   schema indicator, fetched-at timestamp). It MUST NOT contain any
@@ -245,6 +286,40 @@ shows the preview without any holiday rows marked (same as feature
   override flow, the already-logged precedence rule). This feature
   is purely a source-and-caching change behind the existing
   holiday API surface.
+- **FR-015**: When a network fetch is triggered (i.e., on a cold
+  cache for the requested year), the tool MUST print a single-line
+  status message to **stderr** before the preview opens — for
+  example, `Fetching Hamburg public holidays for 2026…` — so the
+  cold-cache wait (up to ~5 s in the FR-008 worst case, after
+  FR-017's retries) does not feel like a freeze. The message MUST
+  go to stderr, not stdout, so that the existing stdout-scrape
+  contract from feature 001
+  (`specs/001-create-mvp-moco-filler-app/contracts/cli.md`) is
+  unaffected. On a cache hit, no such message is printed.
+- **FR-016**: Before persisting a fetched holiday response to the
+  cache, the tool MUST apply **light structural validation**: the
+  response MUST parse into a list of (date, holiday name) pairs,
+  and every date in the parsed result MUST fall in the requested
+  calendar year. Responses that fail either check MUST be rejected
+  without writing the cache and treated as a failed attempt that
+  feeds into the retry logic in FR-017 (and ultimately into the
+  fallback in FR-007 if no attempt succeeds). The tool MUST NOT
+  impose a count envelope (zero or many holidays is structurally
+  valid) and MUST NOT cross-check the response against a hard-coded
+  list of expected Hamburg holiday names — so a legitimate future
+  change to Hamburg's holiday law is honoured automatically.
+- **FR-017**: On any failed cold-cache fetch attempt — including
+  connection errors, HTTP error responses, per-attempt timeouts
+  (FR-008), and structural-validation rejections (FR-016) — the
+  tool MUST retry up to **two additional times**, for a total of
+  three attempts in the worst case. Backoffs between attempts MUST
+  be approximately **200 ms** after the first failure and
+  approximately **600 ms** after the second. All retries MUST fit
+  inside the ~5 s total wall-clock budget from FR-008; if that
+  budget is exhausted before any attempt succeeds, the tool stops
+  retrying and degrades per FR-007. On the first successful attempt
+  the tool writes the cache and proceeds normally; no further
+  attempts are made in that run.
 
 ### Key Entities
 
@@ -268,9 +343,12 @@ shows the preview without any holiday rows marked (same as feature
 - **SC-002**: A CLI run that uses the cache (i.e., not the first run
   for a year) adds no more than 100ms of startup overhead for
   holiday handling versus the pre-feature-003 baseline.
-- **SC-003**: A first-run fetch completes in under 1.5 seconds in
-  the happy path, and is forcibly bounded at 1.5 seconds in the
-  worst case (after which the fallback in FR-007 applies).
+- **SC-003**: A cold-cache fetch that succeeds on its **first**
+  attempt completes in under ~1.5 seconds (the per-attempt timeout
+  from FR-008). The worst-case cold-cache path — three attempts
+  that all fail or time out, with the FR-017 backoffs in between —
+  is forcibly bounded at ~5 seconds of wall-clock time, after
+  which the fallback in FR-007 applies.
 - **SC-004**: A user who is offline and has a cache populated for
   the requested year sees the correct holiday rows in the preview
   — being offline does not visibly degrade the tool once the
