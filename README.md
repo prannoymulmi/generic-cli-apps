@@ -28,17 +28,13 @@ feature under `specs/`.
 > [Spec-Driven Development with Spec Kit][source] by Hashaam Khan
 > (Medium).
 
-<!--
-  Image: drop the article's hero / banner image URL into the src below
-  whenever it's handy (the WebFetch couldn't surface a stable
-  miro.medium.com URL at the time this README was written).
+<p align="center">
+  <a href="https://medium.com/@hashaamkhan975/spec-driven-development-with-spec-kit-34c443e3eaf6">
+    <img src="https://miro.medium.com/v2/resize:fit:1400/format:webp/1*swVvm0WtYzMl2vVSgKSV9w.jpeg" alt="Spec-Driven Development with Spec Kit" width="600">
+  </a>
+</p>
 
-  <p align="center">
-    <a href="https://medium.com/@hashaamkhan975/spec-driven-development-with-spec-kit-34c443e3eaf6">
-      <img src="PASTE_IMAGE_URL_HERE" alt="Spec-Driven Development with Spec Kit" width="600">
-    </a>
-  </p>
--->
+<p align="center"><sub>Image source: <a href="https://medium.com/@hashaamkhan975/spec-driven-development-with-spec-kit-34c443e3eaf6">Spec-Driven Development with Spec Kit</a> — Hashaam Khan, Medium.</sub></p>
 
 ### Why spec-first?
 
