@@ -126,4 +126,4 @@ for interactive prompts.
 
 ## License
 
-Proprietary — see individual tool packages for their license terms.
+[MIT](LICENSE) © 2026 Prannoy Mulmi.
