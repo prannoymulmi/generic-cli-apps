@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "moco-filler"
 version = "0.1.0"
 description = "Fill a month of Moco weekday time entries at 8h/day from the terminal."
-readme = "README.md"
+readme = "src/moco_filler/README.md"
 requires-python = ">=3.9"
 license = { text = "Proprietary" }
 authors = [{ name = "Statista" }]
