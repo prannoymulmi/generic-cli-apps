@@ -86,20 +86,36 @@ feature under `specs/`.
 
 ## Install
 
+Requires Python 3.9+.
+
 ```bash
 git clone <repo-url> cli-apps
 cd cli-apps
 python3 -m venv .venv
-source .venv/bin/activate
-pip install -e .[dev]
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -e ".[dev]"
 ```
 
-`pip install -e .` currently exposes the `moco-filler` console script
-because `pyproject.toml` is scoped to that one package. When the second
-tool lands, that file becomes per-package and the install step grows
-accordingly.
+Quote `".[dev]"` — in zsh an unquoted `.[dev]` is treated as a glob and
+fails with `no matches found`. The editable install exposes the
+`moco-filler` console script inside the activated virtualenv (it's
+currently the only package in `pyproject.toml`); confirm with
+`moco-filler --help`. When the second tool lands, that file becomes
+per-package and the install step grows accordingly.
+
+## Run
+
+```bash
+moco-filler                # current month
+moco-filler --month 2026-07
+```
+
+See [`src/moco_filler/README.md`](src/moco_filler/README.md) for the full
+walkthrough, API-key setup, and the local key/holiday caches.
 
 ## Tests
+
+With the virtualenv active, from the repository root:
 
 ```bash
 pytest

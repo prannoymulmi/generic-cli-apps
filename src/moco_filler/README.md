@@ -8,15 +8,26 @@ for the full walkthrough, troubleshooting table, and SC-004 verification.
 
 ## 1. Install
 
+Requires Python 3.9+.
+
 ```bash
 git clone <repo-url> cli-apps
 cd cli-apps
 python3 -m venv .venv
-source .venv/bin/activate
-pip install -e .[dev]
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -e ".[dev]"
 ```
 
-`pip install -e .` exposes the `moco-filler` console script.
+Quote `".[dev]"` — in zsh an unquoted `.[dev]` is treated as a glob and
+fails with `no matches found`. The editable install exposes the
+`moco-filler` console script inside the activated virtualenv. Use
+`pip install -e "."` if you don't need the test (`dev`) dependencies.
+
+Verify the install:
+
+```bash
+moco-filler --help
+```
 
 ## 2. Get your Moco API key
 
