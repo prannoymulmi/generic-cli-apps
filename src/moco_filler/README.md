@@ -8,15 +8,26 @@ for the full walkthrough, troubleshooting table, and SC-004 verification.
 
 ## 1. Install
 
+Requires Python 3.9+.
+
 ```bash
 git clone <repo-url> cli-apps
 cd cli-apps
 python3 -m venv .venv
-source .venv/bin/activate
-pip install -e .[dev]
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -e ".[dev]"
 ```
 
-`pip install -e .` exposes the `moco-filler` console script.
+Quote `".[dev]"` — in zsh an unquoted `.[dev]` is treated as a glob and
+fails with `no matches found`. The editable install exposes the
+`moco-filler` console script inside the activated virtualenv. Use
+`pip install -e "."` if you don't need the test (`dev`) dependencies.
+
+Verify the install:
+
+```bash
+moco-filler --help
+```
 
 ## 2. Get your Moco API key
 
@@ -29,7 +40,26 @@ pip install -e .[dev]
    export MOCO_API_KEY="paste-your-key-here"
    ```
 
-   The CLI **never** writes this value to disk (FR-001, SC-004).
+### Key caching (feature 005)
+
+Once a key authenticates, it is saved **silently** to a private per-user
+file so you are prompted at most once:
+
+| OS | Location |
+|----|----------|
+| macOS | `~/Library/Application Support/moco-filler/credentials.json` |
+| Linux | `${XDG_CONFIG_HOME:-$HOME/.config}/moco-filler/credentials.json` |
+| Windows | `%APPDATA%\moco-filler\credentials.json` |
+
+- The file lives **outside any repository** and is owner-readable only
+  (`0o600` on macOS/Linux), so the key can never be committed (FR-003).
+- Resolution order is `MOCO_API_KEY` → saved file → masked prompt. A key
+  passed via `MOCO_API_KEY` is **also** saved once it authenticates, so
+  later runs need neither the env var nor the prompt.
+- If Moco rejects the saved key (rotated/revoked), the CLI deletes it,
+  says so, and re-prompts in the same run.
+- To stop caching or switch keys, delete the file — the next run prompts
+  again.
 
 ## 3. Fill a month
 
@@ -40,7 +70,8 @@ moco-filler --month 2026-07
 
 The interactive flow (per `contracts/cli.md`):
 
-1. Masked API-key prompt (skipped when `MOCO_API_KEY` is set).
+1. Masked API-key prompt (skipped when `MOCO_API_KEY` is set or a key is
+   already cached locally — see "Key caching" above).
 2. Project picker → task picker (defaults to `Administration`).
 3. Preview — one row per Mon–Fri of the chosen month. Existing entries
    (across **all** projects/tasks) top each day up to 8h; days already

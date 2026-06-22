@@ -23,13 +23,14 @@ SECONDS_PER_HOUR = 3600
 class ApiCredentials:
     """The API key resolved for this run, plus where it came from.
 
-    Never persisted by this tool. ``source`` exists so diagnostics can
-    say where the token was supplied from without ever printing the
-    token itself.
+    ``source`` exists so diagnostics can say where the token was supplied
+    from without ever printing the token itself. Feature 005 adds
+    ``"store"`` for a key read from the on-disk credential cache; the
+    value still never appears in any log line.
     """
 
     token: str
-    source: Literal["env", "prompt"]
+    source: Literal["env", "store", "prompt"]
 
     def __post_init__(self) -> None:
         if not self.token or not self.token.strip():

@@ -18,7 +18,7 @@ from typing import List, Optional
 
 import questionary
 
-from moco_filler.auth import resolve_credentials
+from moco_filler.auth import authenticate
 from moco_filler.calendar_utils import parse_month, weekday_dates
 from moco_filler.errors import (
     BulkPartialFailureError,
@@ -87,11 +87,11 @@ def _run(args: argparse.Namespace) -> int:
         print(str(exc), file=sys.stderr)
         return EXIT_BAD_INPUT
 
-    credentials = resolve_credentials()
-    client = MocoClient(
-        token=credentials.token, base_url=MOCO_BASE_URL
-    )
-    user_id = client.get_session()
+    def _connect(token: str) -> "tuple[MocoClient, int]":
+        client = MocoClient(token=token, base_url=MOCO_BASE_URL)
+        return client, client.get_session()
+
+    _credentials, (client, user_id) = authenticate(_connect)
     projects = client.get_projects_assigned()
 
     project = _pick_project(projects)

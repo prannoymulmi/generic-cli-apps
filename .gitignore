@@ -18,3 +18,11 @@ venv/
 # OS
 .DS_Store
 Thumbs.db
+
+# Secrets — the Moco API key cache lives in the per-user config dir and
+# must never be committed (feature 005, FR-004). These guard against any
+# accidental in-repo copy.
+credentials.json
+.moco-filler/
+.env
+.env.*
