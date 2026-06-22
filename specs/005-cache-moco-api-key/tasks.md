@@ -29,7 +29,7 @@ each story is an independently testable increment.
 
 **Purpose**: Confirm baseline before touching code
 
-- [ ] T001 Run `pytest` and confirm the suite is green; confirm no new dependency is needed (`requests`, `questionary` already pinned in `pyproject.toml`) per plan.md "no new top-level dependency"
+- [X] T001 Run `pytest` and confirm the suite is green; confirm no new dependency is needed (`requests`, `questionary` already pinned in `pyproject.toml`) per plan.md "no new top-level dependency"
 
 ---
 
@@ -39,11 +39,11 @@ each story is an independently testable increment.
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T002 Create the store module with the per-OS config-dir resolver `_store_path()` (macOS `~/Library/Application Support`, Linux `${XDG_CONFIG_HOME:-$HOME/.config}`, Windows `%APPDATA%`; dir `moco-filler`, file `credentials.json`) in `src/moco_filler/credential_store.py` per contracts/credential-store.md
-- [ ] T003 Implement `read_stored_token()` (None on missing/malformed/empty/wrong-version, never raises), `write_token()` (atomic tempfile + `os.replace`, `chmod 0o600`, dir `0o700`, raises `OSError` on FS failure), and `delete_token()` (no-op if absent, never raises) in `src/moco_filler/credential_store.py`
-- [ ] T004 [P] Unit tests for the store in `tests/test_credential_store.py` (redirect `_store_path` to `tmp_path`): missing file, malformed JSON, empty object, wrong `schema_version`, blank token → None; write→read round-trip; mode is `0o600` after write; atomic overwrite preserves a valid prior value; delete then read → None; write creates the parent dir
-- [ ] T005 [P] Extend `ApiCredentials.source` to `Literal["env", "store", "prompt"]` in `src/moco_filler/models.py`
-- [ ] T006 [P] Unit test asserting an `ApiCredentials` with `source="store"` is valid (and the non-empty-token invariant still holds) in `tests/test_models.py`
+- [X] T002 Create the store module with the per-OS config-dir resolver `_store_path()` (macOS `~/Library/Application Support`, Linux `${XDG_CONFIG_HOME:-$HOME/.config}`, Windows `%APPDATA%`; dir `moco-filler`, file `credentials.json`) in `src/moco_filler/credential_store.py` per contracts/credential-store.md
+- [X] T003 Implement `read_stored_token()` (None on missing/malformed/empty/wrong-version, never raises), `write_token()` (atomic tempfile + `os.replace`, `chmod 0o600`, dir `0o700`, raises `OSError` on FS failure), and `delete_token()` (no-op if absent, never raises) in `src/moco_filler/credential_store.py`
+- [X] T004 [P] Unit tests for the store in `tests/test_credential_store.py` (redirect `_store_path` to `tmp_path`): missing file, malformed JSON, empty object, wrong `schema_version`, blank token → None; write→read round-trip; mode is `0o600` after write; atomic overwrite preserves a valid prior value; delete then read → None; write creates the parent dir
+- [X] T005 [P] Extend `ApiCredentials.source` to `Literal["env", "store", "prompt"]` in `src/moco_filler/models.py`
+- [X] T006 [P] Unit test asserting an `ApiCredentials` with `source="store"` is valid (and the non-empty-token invariant still holds) in `tests/test_models.py`
 
 **Checkpoint**: Store I/O and the model are ready — user stories can begin
 
@@ -57,11 +57,11 @@ each story is an independently testable increment.
 
 ### Implementation for User Story 1
 
-- [ ] T007 [US1] Implement `resolve_credentials()` precedence **env → store → prompt** (env via `MOCO_API_KEY`→`source="env"`; `credential_store.read_stored_token()`→`source="store"`; masked `questionary.password`→`source="prompt"`; empty prompt → `CredentialMissingError`) in `src/moco_filler/auth.py`
-- [ ] T008 [US1] Implement `prompt_for_credentials()` (force masked prompt, `source="prompt"`) and `persist_if_new(creds)` (write via `credential_store.write_token` only when token differs from the stored value; persists ANY source; swallow `OSError` with one stderr warning per FR-013) in `src/moco_filler/auth.py`
-- [ ] T009 [US1] Implement `authenticate(validate)` happy path — `resolve_credentials()` → `result = validate(token)` → `persist_if_new(creds)` → return `(creds, result)`; persist is silent (FR-016) — in `src/moco_filler/auth.py`
-- [ ] T010 [US1] Wire `cli.py`: replace the `resolve_credentials()` → `MocoClient(...)` → `get_session()` block (`cli.py:90-94`) with a `_connect(token)` closure returning `(client, user_id)` and `_creds, (client, user_id) = authenticate(_connect)` in `src/moco_filler/cli.py`
-- [ ] T011 [P] [US1] Unit tests in `tests/test_auth.py` (fake `validate`, fake store, monkeypatched `questionary.password`): env/store/prompt precedence; a valid stored key authenticates with **no prompt** (AR-1); a validated prompt/env key is written to the store (AR-2); no redundant write when the resolved key already equals the stored value
+- [X] T007 [US1] Implement `resolve_credentials()` precedence **env → store → prompt** (env via `MOCO_API_KEY`→`source="env"`; `credential_store.read_stored_token()`→`source="store"`; masked `questionary.password`→`source="prompt"`; empty prompt → `CredentialMissingError`) in `src/moco_filler/auth.py`
+- [X] T008 [US1] Implement `prompt_for_credentials()` (force masked prompt, `source="prompt"`) and `persist_if_new(creds)` (write via `credential_store.write_token` only when token differs from the stored value; persists ANY source; swallow `OSError` with one stderr warning per FR-013) in `src/moco_filler/auth.py`
+- [X] T009 [US1] Implement `authenticate(validate)` happy path — `resolve_credentials()` → `result = validate(token)` → `persist_if_new(creds)` → return `(creds, result)`; persist is silent (FR-016) — in `src/moco_filler/auth.py`
+- [X] T010 [US1] Wire `cli.py`: replace the `resolve_credentials()` → `MocoClient(...)` → `get_session()` block (`cli.py:90-94`) with a `_connect(token)` closure returning `(client, user_id)` and `_creds, (client, user_id) = authenticate(_connect)` in `src/moco_filler/cli.py`
+- [X] T011 [P] [US1] Unit tests in `tests/test_auth.py` (fake `validate`, fake store, monkeypatched `questionary.password`): env/store/prompt precedence; a valid stored key authenticates with **no prompt** (AR-1); a validated prompt/env key is written to the store (AR-2); no redundant write when the resolved key already equals the stored value
 
 **Checkpoint**: First-run-prompts-then-reuses works end to end (MVP core)
 
@@ -75,8 +75,8 @@ each story is an independently testable increment.
 
 ### Implementation for User Story 2
 
-- [ ] T012 [P] [US2] Add defensive ignore entries for any in-repository key file (`credentials.json`, `.moco-filler/`) to `.gitignore` per FR-004
-- [ ] T013 [P] [US2] Unit test in `tests/test_credential_store.py` asserting `_store_path()` resolves under the per-user config dir for each `sys.platform` (darwin/linux/win32, monkeypatched) and is **not** inside the repository working tree (FR-003)
+- [X] T012 [P] [US2] Add defensive ignore entries for any in-repository key file (`credentials.json`, `.moco-filler/`) to `.gitignore` per FR-004
+- [X] T013 [P] [US2] Unit test in `tests/test_credential_store.py` asserting `_store_path()` resolves under the per-user config dir for each `sys.platform` (darwin/linux/win32, monkeypatched) and is **not** inside the repository working tree (FR-003)
 
 **Checkpoint**: The no-commit guarantee is verified structurally and defensively
 
@@ -90,9 +90,9 @@ each story is an independently testable increment.
 
 ### Implementation for User Story 3
 
-- [ ] T014 [US3] Add `forget_stored_credential()` (delete the store via `credential_store.delete_token`, never raises) in `src/moco_filler/auth.py`
-- [ ] T015 [US3] Extend `authenticate(validate)` with reject-recovery: on `AuthError`, if `creds.source == "store"` call `forget_stored_credential()` and warn on stderr ("Saved Moco API key was rejected; please re-enter."), then `prompt_for_credentials()` and `validate` once more; a second `AuthError` propagates (exit 2, no loop) in `src/moco_filler/auth.py`
-- [ ] T016 [P] [US3] Unit tests in `tests/test_auth.py`: stored key rejected → store deleted + re-prompt → success persisted (AR-4); re-entered key also rejected → `AuthError` propagates with no infinite loop (AR-5, SC-004); malformed/empty store falls through to the prompt and rewrites a clean store (AR-6)
+- [X] T014 [US3] Add `forget_stored_credential()` (delete the store via `credential_store.delete_token`, never raises) in `src/moco_filler/auth.py`
+- [X] T015 [US3] Extend `authenticate(validate)` with reject-recovery: on `AuthError`, if `creds.source == "store"` call `forget_stored_credential()` and warn on stderr ("Saved Moco API key was rejected; please re-enter."), then `prompt_for_credentials()` and `validate` once more; a second `AuthError` propagates (exit 2, no loop) in `src/moco_filler/auth.py`
+- [X] T016 [P] [US3] Unit tests in `tests/test_auth.py`: stored key rejected → store deleted + re-prompt → success persisted (AR-4); re-entered key also rejected → `AuthError` propagates with no infinite loop (AR-5, SC-004); malformed/empty store falls through to the prompt and rewrites a clean store (AR-6)
 
 **Checkpoint**: Stale/revoked keys self-heal within one run
 
@@ -106,7 +106,7 @@ each story is an independently testable increment.
 
 ### Implementation for User Story 4
 
-- [ ] T017 [P] [US4] Unit tests in `tests/test_auth.py` exercising the existing resolution/persistence behavior for the replace/remove flows: `MOCO_API_KEY` takes precedence over the stored key for the run (AR-7); a validated env key is persisted, replacing the prior stored value (AR-3 / FR-015); deleting the store (`delete_token`) makes the next `resolve_credentials()` fall through to the prompt (SC-005); a `write_token` `OSError` yields a stderr warning and the run still completes (AR-8)
+- [X] T017 [P] [US4] Unit tests in `tests/test_auth.py` exercising the existing resolution/persistence behavior for the replace/remove flows: `MOCO_API_KEY` takes precedence over the stored key for the run (AR-7); a validated env key is persisted, replacing the prior stored value (AR-3 / FR-015); deleting the store (`delete_token`) makes the next `resolve_credentials()` fall through to the prompt (SC-005); a `write_token` `OSError` yields a stderr warning and the run still completes (AR-8)
 
 **Checkpoint**: Users can reset or override the cached key predictably
 
@@ -116,9 +116,9 @@ each story is an independently testable increment.
 
 **Purpose**: Documentation and end-to-end validation
 
-- [ ] T018 [P] Document the local key cache in `src/moco_filler/README.md` (per-OS location, `MOCO_API_KEY` override now also persists, how to clear the file), aligned with quickstart.md
-- [ ] T019 Run the full `pytest` suite and confirm green; spot-check that no token value appears in any stderr/stdout/log line across the flows (FR-014, SC-006)
-- [ ] T020 Validate quickstart.md end to end: first run prompts and saves; second run no prompt; `rm` the store → prompts again
+- [X] T018 [P] Document the local key cache in `src/moco_filler/README.md` (per-OS location, `MOCO_API_KEY` override now also persists, how to clear the file), aligned with quickstart.md
+- [X] T019 Run the full `pytest` suite and confirm green; spot-check that no token value appears in any stderr/stdout/log line across the flows (FR-014, SC-006)
+- [X] T020 Validate quickstart.md end to end: first run prompts and saves; second run no prompt; `rm` the store → prompts again
 
 ---
 
