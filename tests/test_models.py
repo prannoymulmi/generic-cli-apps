@@ -57,6 +57,16 @@ def test_api_credentials_accepts_prompt_source() -> None:
     assert creds.source == "prompt"
 
 
+def test_api_credentials_accepts_store_source() -> None:
+    creds = ApiCredentials(token="abc", source="store")
+    assert creds.source == "store"
+
+
+def test_api_credentials_rejects_empty_token_for_store_source() -> None:
+    with pytest.raises(ValueError):
+        ApiCredentials(token="   ", source="store")
+
+
 @pytest.mark.parametrize("bad_token", ["", "   ", "\t\n"])
 def test_api_credentials_rejects_empty_token(bad_token: str) -> None:
     with pytest.raises(ValueError):
